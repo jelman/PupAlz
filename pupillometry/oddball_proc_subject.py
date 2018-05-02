@@ -9,6 +9,14 @@ first performs interpolation and filtering, Then peristimulus timecourses
 are created for target and standard trials after baselining. Trial-level data 
 and average PSTC waveforms data are output for further group processing using 
 (i.e., with oddball_proc_group.py). 
+
+Some procedures and parameters adapted from:
+Jackson, I. and Sirois, S. (2009), Infant cognition: going full factorial 
+    with pupil dilation. Developmental Science, 12: 670-679. 
+    doi:10.1111/j.1467-7687.2008.00805.x
+
+Hoeks, B. & Levelt, W.J.M. Behavior Research Methods, Instruments, & 
+    Computers (1993) 25: 16. https://doi.org/10.3758/BF03204445
 """
 
 import os
@@ -18,11 +26,11 @@ import pandas as pd
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.signal import butter, lfilter, filtfilt, fftconvolve
+from scipy.signal import butter, filtfilt, fftconvolve
 import nitime.timeseries as ts
 import nitime.analysis as nta
 import nitime.viz as viz
-from nipy.modalities.fmri.glm import data_scaling, GeneralLinearModel
+from nipy.modalities.fmri.glm import GeneralLinearModel
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
@@ -94,6 +102,9 @@ def get_blinks(diameter, validity):
     bigdiff = diameter.diff().abs()>1
     blinks = np.where(invalid | bigdiff, 1, 0)
     return blinks
+
+
+
 
 def deblink(df):
     """ Set dilation of all blink trials to nan."""
