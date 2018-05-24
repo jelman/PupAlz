@@ -31,8 +31,6 @@ import nitime.timeseries as ts
 import nitime.analysis as nta
 import nitime.viz as viz
 from nipy.modalities.fmri.glm import GeneralLinearModel
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 
 def get_outfile(infile, suffix):
@@ -46,6 +44,32 @@ def get_outfile(infile, suffix):
     outfile = os.path.join(outdir, fname)
     return outfile
     
+
+     
+def get_blinks(diameter, validity):
+    """Get vector of blink or bad trials by combining validity field and any 
+    samples with a change in dilation greater than 1mm. Mark ~100ms before 
+    blink onset and after blink offset as a blink."""
+    invalid = validity==4
+    bigdiff = diameter.diff().abs()>1
+    blinks = np.where(invalid | bigdiff, 1, 0)
+#    startidx = np.where(np.diff(blinks)==1)[0]
+#    stopidx = np.where(np.diff(blinks)==-1)[0]
+#    startblinks = np.concatenate((startidx, startidx-1,startidx-2))
+#    stopblinks = np.concatenate((stopidx+1, stopidx+2,stopidx+3))
+#    blinks[np.concatenate((startblinks, stopblinks))] = 1
+    return blinks
+
+
+def deblink(df):
+    """ Set dilation of all blink trials to nan."""
+    df['BlinksLeft'] = get_blinks(df.DiameterPupilLeftEye, df.ValidityLeftEye)
+    df['BlinksRight'] = get_blinks(df.DiameterPupilRightEye, df.ValidityRightEye)
+    df.loc[df.BlinksLeft==1, "DiameterPupilLeftEye"] = np.nan
+    df.loc[df.BlinksRight==1, "DiameterPupilRightEye"] = np.nan    
+    df['BlinksLR'] = np.where(df.BlinksLeft+df.BlinksRight>=2, 1, 0)
+    return df
+
 
 def butter_bandpass(lowcut, highcut, fs, order):
     """Takes the low and high frequencies, sampling rate, and order. Normalizes
@@ -90,30 +114,11 @@ def resamp_filt_data(df, bin_length='33ms'):
     newresampcols = [x.replace('Smooth','Resamp') for x in resampcols]
     dfresamp[newresampcols] = dfresamp[resampcols].interpolate('linear', limit_direction='both')
     dfresamp['DiameterPupilLRFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLRResamp)
+    dfresamp['DiameterPupilLeftEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLeftEyeResamp)
+    dfresamp['DiameterPupilRightEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilRightEyeResamp)    
     dfresamp['Session'] = dfresamp['Session'].astype('int')    
     dfresamp['TrialId'] = dfresamp['TrialId'].astype('int')
     return dfresamp
-
-        
-def get_blinks(diameter, validity):
-    """Get vector of blink or bad trials by combining validity field and any 
-    samples with a change in dilation greater than 1mm."""
-    invalid = validity==4
-    bigdiff = diameter.diff().abs()>1
-    blinks = np.where(invalid | bigdiff, 1, 0)
-    return blinks
-
-
-
-
-def deblink(df):
-    """ Set dilation of all blink trials to nan."""
-    df['BlinksLeft'] = get_blinks(df.DiameterPupilLeftEye, df.ValidityLeftEye)
-    df['BlinksRight'] = get_blinks(df.DiameterPupilRightEye, df.ValidityRightEye)
-    df['BlinksLR'] = np.where(df.BlinksLeft+df.BlinksRight>=2, 1, 0)
-    df.loc[df.BlinksLeft==1, "DiameterPupilLeftEye"] = np.nan
-    df.loc[df.BlinksRight==1, "DiameterPupilRightEye"] = np.nan
-    return df
 
 
 def plot_qc(dfresamp, infile):
@@ -175,8 +180,8 @@ def get_trial_dils(pupil_dils, onset, tpre=.5, tpost=2.5):
     """Given pupil dilations for entire session and an onset, returns a 
     normalized timecourse for the trial. Calculates a baseline to subtract from
     trial data."""
-    pre_event = onset - pd.tseries.offsets.relativedelta(seconds=tpre)
-    post_event = onset + pd.tseries.offsets.relativedelta(seconds=tpost)    
+    pre_event = onset - pd.to_timedelta(tpre, unit='s')
+    post_event = onset + pd.to_timedelta(tpost, unit='s')    
     baseline = pupil_dils[pre_event:onset].mean()
     trial_dils = pupil_dils[onset:post_event] - baseline
     return trial_dils
