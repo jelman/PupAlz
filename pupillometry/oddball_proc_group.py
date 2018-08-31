@@ -59,6 +59,7 @@ def get_pstc_data(datadir):
         subdf = pd.read_csv(sub_file)
         pstc_list.append(subdf)
     pstcdf = pd.concat(pstc_list).reset_index(drop=True)
+    pstcdf.Session = pstcdf.Session.astype(int)
     return pstcdf
 
 
@@ -102,7 +103,7 @@ def calc_cnr(df):
 def plot_group_pstc(pstcdf, outfile):
     pstcdf = pstcdf[pstcdf.BlinkPct<.5]
     pstcdf['Subject_Session'] =  pstcdf.Subject.astype('str') + "_" + pstcdf.Session.astype('str')
-    p = sns.tsplot(data=pstcdf, time="Timepoint",condition="Condition", unit="Subject_Session", value="Dilation").figure
+    p = sns.lineplot(data=pstcdf, x="Timepoint",y="Dilation", hue="Condition").figure
     p.savefig(outfile)  
     plt.close()    
     
