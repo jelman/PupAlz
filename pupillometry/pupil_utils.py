@@ -11,7 +11,7 @@ def zscore(x):
     return (x - x.mean()) / x.std()
 
 
-def get_outfile(infile, suffix):
+def get_proc_outfile(infile, suffix):
     """Take infile to derive outdir. Changes path from raw to proc
     and adds suffix to basename."""
     outdir = os.path.dirname(infile)
@@ -22,6 +22,16 @@ def get_outfile(infile, suffix):
     outfile = os.path.join(outdir, fname)
     return outfile
     
+
+def get_outfile(infile, suffix):
+    """Take infile to derive outdir. Adds suffix to basename."""
+    outdir = os.path.dirname(infile)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    fname = os.path.splitext(os.path.basename(infile))[0] + suffix
+    outfile = os.path.join(outdir, fname)
+    return outfile
+
      
 def get_blinks(diameter, validity):
     """Get vector of blink or bad trials by combining validity field and any 
