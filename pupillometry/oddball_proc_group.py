@@ -95,6 +95,7 @@ def calc_cnr(df):
     df['CNR2'] = (df.Target_TrialMax - df.Standard_TrialMax) / df.Standard_TrialSD
     df['CNR3'] = df.Target_TrialSD / df.Standard_TrialSD
     df['CNR4'] = (df.Target_TrialMax - df.Standard_TrialMax) / df.Standard_TrialMax
+    df['TargStd_BetaContrast'] = df.Target_Beta - df.Standard_Beta
     return df
 
 

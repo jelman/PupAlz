@@ -31,107 +31,8 @@ import nitime.timeseries as ts
 import nitime.analysis as nta
 import nitime.viz as viz
 from nipy.modalities.fmri.glm import GeneralLinearModel
+import pupil_utils
 
-
-def get_outfile(infile, suffix):
-    """Take infile to derive outdir. Changes path from raw to proc
-    and adds suffix to basename."""
-    outdir = os.path.dirname(infile)
-    outdir = outdir.replace("raw", "proc")
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-    fname = os.path.splitext(os.path.basename(infile))[0].split('_')[1] + suffix
-    outfile = os.path.join(outdir, fname)
-    return outfile
-    
-
-     
-def get_blinks(diameter, validity):
-    """Get vector of blink or bad trials by combining validity field and any 
-    samples with a change in dilation greater than 1mm. Mark ~100ms before 
-    blink onset and after blink offset as a blink."""
-    invalid = validity==4
-    bigdiff = diameter.diff().abs()>1
-    blinks = np.where(invalid | bigdiff, 1, 0)
-#    startidx = np.where(np.diff(blinks)==1)[0]
-#    stopidx = np.where(np.diff(blinks)==-1)[0]
-#    startblinks = np.concatenate((startidx, startidx-1,startidx-2))
-#    stopblinks = np.concatenate((stopidx+1, stopidx+2,stopidx+3))
-#    blinks[np.concatenate((startblinks, stopblinks))] = 1
-    return blinks
-
-
-def deblink(df):
-    """ Set dilation of all blink trials to nan."""
-    df['BlinksLeft'] = get_blinks(df.DiameterPupilLeftEye, df.ValidityLeftEye)
-    df['BlinksRight'] = get_blinks(df.DiameterPupilRightEye, df.ValidityRightEye)
-    df.loc[df.BlinksLeft==1, "DiameterPupilLeftEye"] = np.nan
-    df.loc[df.BlinksRight==1, "DiameterPupilRightEye"] = np.nan    
-    df['BlinksLR'] = np.where(df.BlinksLeft+df.BlinksRight>=2, 1, 0)
-    return df
-
-
-def butter_bandpass(lowcut, highcut, fs, order):
-    """Takes the low and high frequencies, sampling rate, and order. Normalizes
-    critical frequencies by the nyquist frequency."""
-    nyq = 0.5 * fs
-    low = lowcut / nyq
-    high = highcut / nyq
-    b, a = butter(order, [low, high], btype='band')
-    return b, a
-
-
-def butter_bandpass_filter(signal, lowcut=0.01, highcut=4., fs=30., order=3):
-    """Get numerator and denominator coefficient vectors from Butterworth filter
-    and then apply filter to signal."""
-    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
-    y = filtfilt(b, a, signal)
-    return y
-    
-    
-def resamp_filt_data(df, bin_length='33ms'):
-    """Takes dataframe of raw pupil data and performs the following steps:
-        1. Smooths left and right pupil by taking average of 2 surrounding samples
-        2. Averages left and right pupils
-        3. Creates a timestamp index with start of trial as time 0. 
-        4. Resamples data to 30Hz to standardize timing across trials.
-        5. Nearest neighbor interpolation for blinks, trial, and subject level data 
-        6. Linear interpolation (bidirectional) of dilation data
-        7. Applies Butterworth bandpass filter to remove high and low freq noise
-        """
-    df['DiameterPupilLeftEyeSmooth'] = df.DiameterPupilLeftEye.rolling(5, center=True).mean()  
-    df['DiameterPupilRightEyeSmooth'] = df.DiameterPupilRightEye.rolling(5, center=True).mean()  
-    df['DiameterPupilLRSmooth'] = df[['DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']].mean(axis=1, skipna=True)
-    df['Time'] = (df.TETTime - df.TETTime.iloc[0]) / 1000.
-    df['Timestamp'] = pd.to_datetime(df.Time, unit='s')
-    df = df.set_index('Timestamp')
-    dfresamp = df.resample(bin_length).mean()
-    dfresamp['Subject'] = df.Subject[0]
-    nearestcols = ['Subject','Session','TrialId','CRESP','ACC','RT',
-                   'BlinksLeft','BlinksRight','BlinksLR'] 
-    dfresamp[nearestcols] = dfresamp[nearestcols].interpolate('nearest')
-    resampcols = ['DiameterPupilLRSmooth','DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']
-    newresampcols = [x.replace('Smooth','Resamp') for x in resampcols]
-    dfresamp[newresampcols] = dfresamp[resampcols].interpolate('linear', limit_direction='both')
-    dfresamp['DiameterPupilLRFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLRResamp)
-    dfresamp['DiameterPupilLeftEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLeftEyeResamp)
-    dfresamp['DiameterPupilRightEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilRightEyeResamp)    
-    dfresamp['Session'] = dfresamp['Session'].astype('int')    
-    dfresamp['TrialId'] = dfresamp['TrialId'].astype('int')
-    return dfresamp
-
-
-def plot_qc(dfresamp, infile):
-    """Plot raw signal, interpolated and filter signal, and blinks"""
-    outfile = get_outfile(infile, '_PupilLR_plot.png')
-    signal = dfresamp.DiameterPupilLRResamp.values
-    signal_bp = dfresamp.DiameterPupilLRFilt.values
-    blinktimes = dfresamp.BlinksLR.values
-    plt.plot(range(len(signal)), signal, sns.xkcd_rgb["pale red"], 
-         range(len(signal_bp)), signal_bp+np.nanmean(signal), sns.xkcd_rgb["denim blue"], 
-         blinktimes, sns.xkcd_rgb["amber"], lw=1)
-    plt.savefig(outfile)
-    plt.close()
 
 
 def split_df(dfresamp):
@@ -156,7 +57,7 @@ def split_df(dfresamp):
 
 def save_total_blink_pct(dfresamp, infile):
     """Calculate and save out percent of trials with blinks in session"""
-    outfile = get_outfile(infile, '_BlinkPct.json')
+    outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
     blink_dict = {}
     blink_dict['BlinkPct'] = dfresamp.BlinksLR.mean()
     blink_dict['Subject'] = dfresamp.loc[dfresamp.index[0], 'Subject']
@@ -186,11 +87,6 @@ def get_trial_dils(pupil_dils, onset, tpre=.5, tpost=2.5):
     trial_dils = pupil_dils[onset:post_event] - baseline
     return trial_dils
 
-
-def zscore(x):
-    """ Z-score numpy array or pandas series """
-    return (x - x.mean()) / x.std()
-    
 
 def proc_all_trials(sessdf, pupil_dils, targdf, standdf):
     """FOr each trial, calculates the pupil dilation timecourse and saves to 
@@ -244,7 +140,7 @@ def convolve_reg(event_ts, kernel):
 def plot_event(signal_filt, trg_ts, std_ts, kernel, infile):
     """Plot peri-stimulus timecourse of each event type as well as the 
     canonical pupil response function"""
-    outfile = get_outfile(infile, '_PSTCplot.png')
+    outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
     plt.ioff()
     all_events = std_ts.data + (trg_ts.data*2)
     all_events_ts = ts.TimeSeries(all_events, sampling_rate=30., time_unit='s')
@@ -284,14 +180,14 @@ def ts_glm(pupilts, trg_onsets, std_onsets, blinks, sampling_rate=30.):
 def save_glm_results(glm_results, infile):
     """Calculate and save out percent of trials with blinks in session"""
     glm_json = json.dumps(glm_results)
-    outfile = get_outfile(infile, '_GLMresults.json')
+    outfile = pupil_utils.get_outfile(infile, '_GLMresults.json')
     with open(outfile, 'w') as f:
         f.write(glm_json)
         
         
 def plot_pstc(allconddf, infile):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
-    outfile = get_outfile(infile, '_PSTCplot.png')
+    outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
     p = sns.tsplot(data=allconddf, time="Timepoint",condition="Condition", unit="TrialId", value="Dilation").figure
     p.savefig(outfile)  
     plt.close()
@@ -299,7 +195,7 @@ def plot_pstc(allconddf, infile):
 
 def save_pstc(allconddf, infile):
     """Save out peristimulus timecourse plots"""
-    outfile = get_outfile(infile, '_PSTCdata.csv')
+    outfile = pupil_utils.get_outfile(infile, '_PSTCdata.csv')
     pstcdf = allconddf.groupby(['Subject','Condition','Timepoint']).mean().reset_index()
     pstcdf.to_csv(outfile, index=False)
     
@@ -311,13 +207,13 @@ def proc_subject(fname):
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
     df = pd.read_csv(fname, sep="\t")
-    df = deblink(df)
-    dfresamp = resamp_filt_data(df)
+    df = pupil_utils.deblink(df)
+    dfresamp = pupil_utils.resamp_filt_data(df)
     dfresamp['Condition'] = np.where(dfresamp.CRESP==5, 'Standard', 'Target')
     plot_qc(dfresamp, fname)
     sessdf, targdf, standdf = split_df(dfresamp)
     sessdf['BlinkPct'] = get_blink_pct(dfresamp, fname)
-    dfresamp['zDiameterPupilLRFilt'] = zscore(dfresamp['DiameterPupilLRFilt'])
+    dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
     sessdf, targdf, standdf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
                                               targdf, standdf)
     targdf_long = reshape_df(targdf)
@@ -333,7 +229,7 @@ def proc_subject(fname):
     allconddf['Subject'] = sessdf.Subject.iat[0]
     allconddf['Session'] = sessdf.Session.iat[0]    
     save_pstc(allconddf, fname)
-    sessout = get_outfile(fname, '_SessionData.csv')    
+    sessout = pupil_utils.get_outfile(fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)
 
     
