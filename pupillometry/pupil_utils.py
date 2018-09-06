@@ -76,7 +76,7 @@ def butter_bandpass_filter(signal, lowcut=0.01, highcut=4., fs=30., order=3):
     return y
     
     
-def resamp_filt_data(df, bin_length='33ms'):
+def resamp_filt_data(df, bin_length='33ms', string_cols=None):
     """Takes dataframe of raw pupil data and performs the following steps:
         1. Smooths left and right pupil by taking average of 2 surrounding samples
         2. Averages left and right pupils
@@ -85,6 +85,7 @@ def resamp_filt_data(df, bin_length='33ms'):
         5. Nearest neighbor interpolation for blinks, trial, and subject level data 
         6. Linear interpolation (bidirectional) of dilation data
         7. Applies Butterworth bandpass filter to remove high and low freq noise
+        8. If string columns should be retained, forward fill and merge with resamp data
         """
     df['DiameterPupilLeftEyeSmooth'] = df.DiameterPupilLeftEye.rolling(5, center=True).mean()  
     df['DiameterPupilRightEyeSmooth'] = df.DiameterPupilRightEye.rolling(5, center=True).mean()  
@@ -105,6 +106,9 @@ def resamp_filt_data(df, bin_length='33ms'):
     dfresamp['DiameterPupilRightEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilRightEyeResamp)    
     dfresamp['Session'] = dfresamp['Session'].astype('int')    
     dfresamp['TrialId'] = dfresamp['TrialId'].astype('int')
+    if string_cols:
+        stringdf = df[string_cols].resample(bin_length).ffill()
+        dfresamp = dfresamp.merge(stringdf, left_index=True, right_index=True)
     return dfresamp
 
 
