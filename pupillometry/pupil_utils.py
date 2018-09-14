@@ -1,10 +1,12 @@
 import os
+import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.signal import butter, filtfilt
 import matlab_wrapper
+
 
 def zscore(x):
     """ Z-score numpy array or pandas series """
@@ -71,6 +73,7 @@ def butter_bandpass(lowcut, highcut, fs, order):
 def butter_bandpass_filter(signal, lowcut=0.01, highcut=4., fs=30., order=3):
     """Get numerator and denominator coefficient vectors from Butterworth filter
     and then apply bandpass filter to signal."""
+
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = filtfilt(b, a, signal)
     return y
@@ -122,7 +125,6 @@ def chap_deblink(raw_pupil, gradient, gradient_crit=4, z_outliers=2.5, zeros_out
     return clean_pupil, blinks
 
 
-
 def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
     """Takes dataframe of raw pupil data and performs the following steps:
         1. Smooths left and right pupil by taking average of 2 surrounding samples
@@ -134,8 +136,8 @@ def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
         7. Applies Butterworth bandpass filter to remove high and low freq noise
         8. If string columns should be retained, forward fill and merge with resamp data
         """
-    df['DiameterPupilLeftEyeSmooth'] = df.DiameterPupilLeftEyeDeblink.rolling(5, center=True).mean()  
-    df['DiameterPupilRightEyeSmooth'] = df.DiameterPupilRightEyeDeblink.rolling(5, center=True).mean()  
+    df['DiameterPupilLeftEyeSmooth'] = df.DiameterPupilLeftEye.rolling(5, center=True).mean()  
+    df['DiameterPupilRightEyeSmooth'] = df.DiameterPupilRightEye.rolling(5, center=True).mean()  
     df['DiameterPupilLRSmooth'] = df[['DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']].mean(axis=1, skipna=True)
     df['Time'] = (df.TETTime - df.TETTime.iloc[0]) / 1000.
     df['Timestamp'] = pd.to_datetime(df.Time, unit='s')
@@ -164,9 +166,10 @@ def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
     return dfresamp
 
 
-def plot_qc(dfresamp, filt_type, infile, suffix='_PupilLR_plot.png'):
+
+def plot_qc(dfresamp, infile):
     """Plot raw signal, interpolated and filter signal, and blinks"""
-    outfile = get_outfile(infile, suffix)
+    outfile = get_outfile(infile, '_PupilLR_plot.png')
     signal = dfresamp.DiameterPupilLRResamp.values
     signal_bp = dfresamp.DiameterPupilLRFilt.values
     blinktimes = dfresamp.BlinksLR.values
