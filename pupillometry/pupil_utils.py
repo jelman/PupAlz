@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.signal import butter, filtfilt
-
+import matlab_wrapper
 
 def zscore(x):
     """ Z-score numpy array or pandas series """
@@ -70,13 +70,60 @@ def butter_bandpass(lowcut, highcut, fs, order):
 
 def butter_bandpass_filter(signal, lowcut=0.01, highcut=4., fs=30., order=3):
     """Get numerator and denominator coefficient vectors from Butterworth filter
-    and then apply filter to signal."""
+    and then apply bandpass filter to signal."""
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = filtfilt(b, a, signal)
     return y
     
+
+def butter_lowpass(highcut, fs, order):
+    """Takes the high frequencies, sampling rate, and order. Normalizes
+    critical frequencies by the nyquist frequency."""
+    nyq = 0.5 * fs
+    high = highcut / nyq
+    b, a = butter(order, high, btype='low')
+    return b, a
+
+
+def butter_lowpass_filter(signal, highcut=4., fs=30., order=3):
+    """Get numerator and denominator coefficient vectors from Butterworth filter
+    and then apply higpass filter to signal."""
+    b, a = butter_lowpass(highcut, fs, order=order)
+    y = filtfilt(b, a, signal)
+    return y
+
+
+
+def get_gradient(df, gradient_crit=4):
+    diffleft = df.DiameterPupilLeftEye.replace(-1,np.nan).diff()
+    diffright = df.DiameterPupilRightEye.replace(-1,np.nan).diff()
+    diffleftmean = np.nanmean(diffleft)
+    diffrightmean = np.nanmean(diffright)
+    diffleftstd = np.nanstd(diffleft)
+    diffrightstd = np.nanstd(diffright)
+    gradientleft = diffleftmean + (gradient_crit*diffleftstd)
+    gradientright = diffrightmean + (gradient_crit*diffrightstd)
+    gradient = np.mean([gradientleft, gradientright])
+    return gradient
     
-def resamp_filt_data(df, bin_length='33ms', string_cols=None):
+    
+def chap_deblink(raw_pupil, gradient, gradient_crit=4, z_outliers=2.5, zeros_outliers = 20,
+                 data_rate=30, linear_interpolation=True, trial2show=0): 
+    matlab = matlab_wrapper.MatlabSession()
+    matlab.eval("addpath(genpath('/usr/local/matlab-tools/chap'))")
+    clean_pupil, blinkidx = matlab.workspace.fix_blinks2(np.atleast_2d(raw_pupil).T.tolist(), 
+                                                       float(z_outliers), float(zeros_outliers), 
+                                                       float(data_rate), linear_interpolation, 
+                                                       gradient, 
+                                                       trial2show, 
+                                                       nout=2)
+    blinks = np.zeros_like(clean_pupil)
+    blinks[blinkidx.astype(int)] = 1
+    return clean_pupil, blinks
+
+
+
+def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
     """Takes dataframe of raw pupil data and performs the following steps:
         1. Smooths left and right pupil by taking average of 2 surrounding samples
         2. Averages left and right pupils
@@ -87,9 +134,8 @@ def resamp_filt_data(df, bin_length='33ms', string_cols=None):
         7. Applies Butterworth bandpass filter to remove high and low freq noise
         8. If string columns should be retained, forward fill and merge with resamp data
         """
-    df['DiameterPupilLeftEyeSmooth'] = df.DiameterPupilLeftEye.rolling(5, center=True).mean()  
-    df['DiameterPupilRightEyeSmooth'] = df.DiameterPupilRightEye.rolling(5, center=True).mean()  
-    df['DiameterPupilLRSmooth'] = df[['DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']].mean(axis=1, skipna=True)
+    df['DiameterPupilLeftEyeSmooth'] = df.DiameterPupilLeftEyeDeblink.rolling(5, center=True).mean()  
+    df['DiameterPupilRightEyeSmooth'] = df.DiameterPupilRightEyeDeblink.rolling(5, center=True).mean()  
     df['Time'] = (df.TETTime - df.TETTime.iloc[0]) / 1000.
     df['Timestamp'] = pd.to_datetime(df.Time, unit='s')
     df = df.set_index('Timestamp')
@@ -98,12 +144,16 @@ def resamp_filt_data(df, bin_length='33ms', string_cols=None):
     nearestcols = ['Subject','Session','TrialId','CRESP','ACC','RT',
                    'BlinksLeft','BlinksRight','BlinksLR'] 
     dfresamp[nearestcols] = dfresamp[nearestcols].interpolate('nearest')
-    resampcols = ['DiameterPupilLRSmooth','DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']
+    resampcols = ['DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']
     newresampcols = [x.replace('Smooth','Resamp') for x in resampcols]
     dfresamp[newresampcols] = dfresamp[resampcols].interpolate('linear', limit_direction='both')
-    dfresamp['DiameterPupilLRFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLRResamp)
-    dfresamp['DiameterPupilLeftEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLeftEyeResamp)
-    dfresamp['DiameterPupilRightEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilRightEyeResamp)    
+    if filt_type=='band':
+        dfresamp['DiameterPupilLeftEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLeftEyeResamp)
+        dfresamp['DiameterPupilRightEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilRightEyeResamp)    
+    elif filt_type=='low':
+        dfresamp['DiameterPupilLeftEyeFilt'] = butter_lowpass_filter(dfresamp.DiameterPupilLeftEyeResamp)
+        dfresamp['DiameterPupilRightEyeFilt'] = butter_lowpass_filter(dfresamp.DiameterPupilRightEyeResamp)           
+    dfresamp['DiameterPupilLRFilt'] = dfresamp[['DiameterPupilLeftEyeFilt','DiameterPupilRightEyeFilt']].mean(axis=1, skipna=True)
     dfresamp['Session'] = dfresamp['Session'].astype('int')    
     dfresamp['TrialId'] = dfresamp['TrialId'].astype('int')
     if string_cols:
@@ -112,9 +162,9 @@ def resamp_filt_data(df, bin_length='33ms', string_cols=None):
     return dfresamp
 
 
-def plot_qc(dfresamp, infile):
+def plot_qc(dfresamp, filt_type, infile, suffix='_PupilLR_plot.png'):
     """Plot raw signal, interpolated and filter signal, and blinks"""
-    outfile = get_outfile(infile, '_PupilLR_plot.png')
+    outfile = get_outfile(infile, suffix)
     signal = dfresamp.DiameterPupilLRResamp.values
     signal_bp = dfresamp.DiameterPupilLRFilt.values
     blinktimes = dfresamp.BlinksLR.values
