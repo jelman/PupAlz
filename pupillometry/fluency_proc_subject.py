@@ -26,20 +26,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pupil_utils
-
-
-"""
-TODO: 
-    Use ReadLetter or BeginFile as baseline?  Change get_trial_events if needed.
-    Verify low pass filter for fluency data to avoid removing linear trend
-"""
-
     
 
 
 def plot_trials(df, fname):
     outfile = pupil_utils.get_outfile(fname, "_PupilPlot.png")
-    p = df.groupby(level='Trial').DiameterPupilLRFilt.plot()
+    p = df.groupby(level='Trial').DiameterPupilLRFilt.plot().figure
     p.savefig(outfile)  
     plt.close()
     
