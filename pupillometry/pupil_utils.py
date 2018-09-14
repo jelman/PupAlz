@@ -136,6 +136,7 @@ def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
         """
     df['DiameterPupilLeftEyeSmooth'] = df.DiameterPupilLeftEyeDeblink.rolling(5, center=True).mean()  
     df['DiameterPupilRightEyeSmooth'] = df.DiameterPupilRightEyeDeblink.rolling(5, center=True).mean()  
+    df['DiameterPupilLRSmooth'] = df[['DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']].mean(axis=1, skipna=True)
     df['Time'] = (df.TETTime - df.TETTime.iloc[0]) / 1000.
     df['Timestamp'] = pd.to_datetime(df.Time, unit='s')
     df = df.set_index('Timestamp')
@@ -144,16 +145,17 @@ def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
     nearestcols = ['Subject','Session','TrialId','CRESP','ACC','RT',
                    'BlinksLeft','BlinksRight','BlinksLR'] 
     dfresamp[nearestcols] = dfresamp[nearestcols].interpolate('nearest')
-    resampcols = ['DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']
+    resampcols = ['DiameterPupilLRSmooth','DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']
     newresampcols = [x.replace('Smooth','Resamp') for x in resampcols]
     dfresamp[newresampcols] = dfresamp[resampcols].interpolate('linear', limit_direction='both')
     if filt_type=='band':
+        dfresamp['DiameterPupilLRFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLRResamp)        
         dfresamp['DiameterPupilLeftEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLeftEyeResamp)
         dfresamp['DiameterPupilRightEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilRightEyeResamp)    
     elif filt_type=='low':
+        dfresamp['DiameterPupilLRFilt'] = butter_lowpass_filter(dfresamp.DiameterPupilLRResamp)        
         dfresamp['DiameterPupilLeftEyeFilt'] = butter_lowpass_filter(dfresamp.DiameterPupilLeftEyeResamp)
         dfresamp['DiameterPupilRightEyeFilt'] = butter_lowpass_filter(dfresamp.DiameterPupilRightEyeResamp)           
-    dfresamp['DiameterPupilLRFilt'] = dfresamp[['DiameterPupilLeftEyeFilt','DiameterPupilRightEyeFilt']].mean(axis=1, skipna=True)
     dfresamp['Session'] = dfresamp['Session'].astype('int')    
     dfresamp['TrialId'] = dfresamp['TrialId'].astype('int')
     if string_cols:
