@@ -55,9 +55,9 @@ def clean_trials(df, trialevents):
                                                                  zeros_outliers = 20)       
         clean_pupil_right, blinks_right = pupil_utils.chap_deblink(rawtrial.DiameterPupilRightEye, gradient,
                                                                    zeros_outliers = 20)
-        rawtrial = rawtrial.assign(DiameterPupilLeftEyeDeblink=clean_pupil_left, 
+        rawtrial = rawtrial.assign(DiameterPupilLeftEye=clean_pupil_left, 
                                    BlinksLeft=blinks_left,
-                                   DiameterPupilRightEyeDeblink=clean_pupil_right, 
+                                   DiameterPupilRightEye=clean_pupil_right, 
                                    BlinksRight=blinks_right) 
         rawtrial['BlinksLR'] = np.where(rawtrial.BlinksLeft+rawtrial.BlinksRight>=1, 1, 0)        
         trial_resamp = pupil_utils.resamp_filt_data(rawtrial, filt_type='low', string_cols=['CurrentObject'])
