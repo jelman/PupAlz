@@ -57,11 +57,8 @@ def split_df(dfresamp):
 
 def save_total_blink_pct(dfresamp, infile):
     """Calculate and save out percent of trials with blinks in session"""
-<<<<<<< HEAD
     outfile = pupil_utils.get_proc_outfile(infile, '_BlinkPct.json')
-=======
-    outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
->>>>>>> 0d6ad547af8f27adc810e0fee027b79c15df6f3e
+
     blink_dict = {}
     blink_dict['BlinkPct'] = dfresamp.BlinksLR.mean()
     blink_dict['Subject'] = dfresamp.loc[dfresamp.index[0], 'Subject']
@@ -144,11 +141,7 @@ def convolve_reg(event_ts, kernel):
 def plot_event(signal_filt, trg_ts, std_ts, kernel, infile):
     """Plot peri-stimulus timecourse of each event type as well as the 
     canonical pupil response function"""
-<<<<<<< HEAD
     outfile = pupil_utils.get_proc_outfile(infile, '_PSTCplot.png')
-=======
-    outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
->>>>>>> 0d6ad547af8f27adc810e0fee027b79c15df6f3e
     plt.ioff()
     all_events = std_ts.data + (trg_ts.data*2)
     all_events_ts = ts.TimeSeries(all_events, sampling_rate=30., time_unit='s')
@@ -188,22 +181,14 @@ def ts_glm(pupilts, trg_onsets, std_onsets, blinks, sampling_rate=30.):
 def save_glm_results(glm_results, infile):
     """Calculate and save out percent of trials with blinks in session"""
     glm_json = json.dumps(glm_results)
-<<<<<<< HEAD
     outfile = pupil_utils.get_proc_outfile(infile, '_GLMresults.json')
-=======
-    outfile = pupil_utils.get_outfile(infile, '_GLMresults.json')
->>>>>>> 0d6ad547af8f27adc810e0fee027b79c15df6f3e
     with open(outfile, 'w') as f:
         f.write(glm_json)
         
         
 def plot_pstc(allconddf, infile):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
-<<<<<<< HEAD
     outfile = pupil_utils.get_proc_outfile(infile, '_PSTCplot.png')
-=======
-    outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
->>>>>>> 0d6ad547af8f27adc810e0fee027b79c15df6f3e
     p = sns.tsplot(data=allconddf, time="Timepoint",condition="Condition", unit="TrialId", value="Dilation").figure
     p.savefig(outfile)  
     plt.close()
@@ -211,11 +196,7 @@ def plot_pstc(allconddf, infile):
 
 def save_pstc(allconddf, infile):
     """Save out peristimulus timecourse plots"""
-<<<<<<< HEAD
     outfile = pupil_utils.get_proc_outfile(infile, '_PSTCdata.csv')
-=======
-    outfile = pupil_utils.get_outfile(infile, '_PSTCdata.csv')
->>>>>>> 0d6ad547af8f27adc810e0fee027b79c15df6f3e
     pstcdf = allconddf.groupby(['Subject','Condition','Timepoint']).mean().reset_index()
     pstcdf.to_csv(outfile, index=False)
     
@@ -249,11 +230,7 @@ def proc_subject(fname):
     allconddf['Subject'] = sessdf.Subject.iat[0]
     allconddf['Session'] = sessdf.Session.iat[0]    
     save_pstc(allconddf, fname)
-<<<<<<< HEAD
     sessout = pupil_utils.get_proc_outfile(fname, '_SessionData.csv')    
-=======
-    sessout = pupil_utils.get_outfile(fname, '_SessionData.csv')    
->>>>>>> 0d6ad547af8f27adc810e0fee027b79c15df6f3e
     sessdf.to_csv(sessout, index=False)
 
     
