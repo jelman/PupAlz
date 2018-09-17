@@ -120,6 +120,9 @@ def chap_deblink(raw_pupil, gradient, gradient_crit=4, z_outliers=2.5, zeros_out
                                                        gradient, 
                                                        trial2show, 
                                                        nout=3)
+    if np.all(clean_pupil==0):
+        clean_pupil.fill(np.nan)
+        blinks.fill(np.nan)
     return clean_pupil, blinks
 
 
