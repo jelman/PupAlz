@@ -52,8 +52,10 @@ def clean_trials(df, trialevents):
                                    BlinksLeft=blinks_left,
                                    DiameterPupilRightEye=clean_pupil_right, 
                                    BlinksRight=blinks_right) 
-        rawtrial['BlinksLR'] = np.where(rawtrial.BlinksLeft+rawtrial.BlinksRight>=1, 1, 0)        
+        rawtrial['BlinksLR'] = rawtrial[['BlinksLeft','BlinksRight']].sum(axis=1, min_count=1)
+        rawtrial.loc[rawtrial['BlinksLR']>1, 'BlinksLR'] = 1.0    
         trial_resamp = pupil_utils.resamp_filt_data(rawtrial, filt_type='low', string_cols=['CurrentObject'])
+        trial_resamp['neyes'] = 2 - (int(np.isnan(clean_pupil_left).all()) + int(np.isnan(clean_pupil_right).all()))
         resampled_dict[trialnum] = trial_resamp        
     dfresamp = pd.concat(resampled_dict, names=['Trial','Timestamp'])
     return dfresamp
@@ -100,6 +102,9 @@ def proc_subject(fname):
     blinkpct = pd.DataFrame(dfresamp.groupby(level='Trial').BlinksLR.mean())
     blink_outname = pupil_utils.get_outfile(fname, "_BlinkPct.csv")
     blinkpct.to_csv(blink_outname, index=True)
+    neyesdf = pd.DataFrame(dfresamp.groupby(level='Trial').neyes.mean())
+    neyes_outname = pupil_utils.get_outfile(fname, "_nEyes.csv")
+    neyesdf.to_csv(neyes_outname, index=True)
     dfresamp1s = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('1s', level='Timestamp').mean())
     pupildf = dfresamp1s.reset_index()[['Subject','Trial','Timestamp','DiameterPupilLRFilt']]
     pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
