@@ -113,15 +113,13 @@ def get_gradient(df, gradient_crit=4):
 def chap_deblink(raw_pupil, gradient, gradient_crit=4, z_outliers=2.5, zeros_outliers = 20,
                  data_rate=30, linear_interpolation=True, trial2show=0): 
     matlab = matlab_wrapper.MatlabSession()
-    matlab.eval("addpath(genpath('/usr/local/matlab-tools/chap'))")
-    clean_pupil, blinkidx = matlab.workspace.fix_blinks2(np.atleast_2d(raw_pupil).T.tolist(), 
+#    matlab.eval(os.path.abspath(__file__))
+    clean_pupil, blinkidx, blinks = matlab.workspace.fix_blinks_PupAlz(np.atleast_2d(raw_pupil).T.tolist(), 
                                                        float(z_outliers), float(zeros_outliers), 
                                                        float(data_rate), linear_interpolation, 
                                                        gradient, 
                                                        trial2show, 
-                                                       nout=2)
-    blinks = np.zeros_like(clean_pupil)
-    blinks[blinkidx.astype(int)] = 1
+                                                       nout=3)
     return clean_pupil, blinks
 
 

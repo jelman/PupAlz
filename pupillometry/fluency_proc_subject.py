@@ -31,8 +31,8 @@ import pupil_utils
 
 def plot_trials(df, fname):
     outfile = pupil_utils.get_outfile(fname, "_PupilPlot.png")
-    p = df.groupby(level='Trial').DiameterPupilLRFilt.plot().figure
-    p.savefig(outfile)  
+    df.groupby(level='Trial').DiameterPupilLRFilt.plot()
+    plt.savefig(outfile)  
     plt.close()
     
     
@@ -45,7 +45,8 @@ def clean_trials(df, trialevents):
         clean_pupil_left, blinks_left = pupil_utils.chap_deblink(rawtrial.DiameterPupilLeftEye, 
                                                                  gradient,
                                                                  zeros_outliers = 20)       
-        clean_pupil_right, blinks_right = pupil_utils.chap_deblink(rawtrial.DiameterPupilRightEye, gradient,
+        clean_pupil_right, blinks_right = pupil_utils.chap_deblink(rawtrial.DiameterPupilRightEye, 
+                                                                   gradient,
                                                                    zeros_outliers = 20)
         rawtrial = rawtrial.assign(DiameterPupilLeftEye=clean_pupil_left, 
                                    BlinksLeft=blinks_left,
