@@ -31,7 +31,9 @@ import pupil_utils
 
 def plot_trials(df, fname):
     outfile = pupil_utils.get_outfile(fname, "_PupilPlot.png")
-    df.groupby(level='Trial').DiameterPupilLRFilt.plot()
+    for trial in df.index.get_level_values('Trial').unique():
+        df.loc[trial].DiameterPupilLRFilt.plot(label=trial)
+    plt.legend()
     plt.savefig(outfile)  
     plt.close()
     
@@ -105,11 +107,11 @@ def proc_subject(fname):
     neyesdf = pd.DataFrame(dfresamp.groupby(level='Trial').neyes.mean())
     neyes_outname = pupil_utils.get_outfile(fname, "_nEyes.csv")
     neyesdf.to_csv(neyes_outname, index=True)
-    dfresamp1s = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('1s', level='Timestamp').mean())
-    pupildf = dfresamp1s.reset_index()[['Subject','Trial','Timestamp','DiameterPupilLRFilt']]
+    dfresamp500ms = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('500ms', level='Timestamp').mean())
+    pupildf = dfresamp500ms.reset_index()[['Subject','Trial','Timestamp','DiameterPupilLRFilt']]
     pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
     pupildf.to_csv(pupil_outname, index=True)
-    plot_trials(dfresamp1s, fname)
+    plot_trials(dfresamp500ms, fname)
 
 
     
