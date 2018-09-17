@@ -148,6 +148,7 @@ def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
     nearestcols = ['Subject','Session','TrialId','CRESP','ACC','RT',
                    'BlinksLeft','BlinksRight','BlinksLR'] 
     dfresamp[nearestcols] = dfresamp[nearestcols].interpolate('nearest')
+    dfresamp[['BlinksLeft','BlinksRight','BlinksLR']] = dfresamp[['BlinksLeft','BlinksRight','BlinksLR']].round()
     resampcols = ['DiameterPupilLRSmooth','DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']
     newresampcols = [x.replace('Smooth','Resamp') for x in resampcols]
     dfresamp[newresampcols] = dfresamp[resampcols].interpolate('linear', limit_direction='both')
