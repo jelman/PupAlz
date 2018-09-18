@@ -160,7 +160,7 @@ def ts_glm(pupilts, trg_onsets, std_onsets, blinks, sampling_rate=30.):
     std_ts = get_event_ts(pupilts, std_onsets)
     kernel_end_sec = 2.5
     kernel_length = kernel_end_sec / (1/sampling_rate)
-    kernel_x = np.linspace(0, kernel_end_sec, kernel_length)
+    kernel_x = np.linspace(0, kernel_end_sec, int(kernel_length))
     kernel = pupil_irf(kernel_x)
     trg_reg = convolve_reg(trg_ts, kernel)
     std_reg = convolve_reg(std_ts, kernel)
@@ -211,7 +211,7 @@ def proc_subject(fname):
     df = pupil_utils.deblink(df)
     dfresamp = pupil_utils.resamp_filt_data(df)
     dfresamp['Condition'] = np.where(dfresamp.CRESP==5, 'Standard', 'Target')
-    pupil_utils.plot_qc(dfresamp, fname)
+    pupil_utils.plot_qc(dfresamp, fname.replace("/raw/","/proc/"))
     sessdf, targdf, standdf = split_df(dfresamp)
     sessdf['BlinkPct'] = get_blink_pct(dfresamp, fname)
     dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
