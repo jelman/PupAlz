@@ -41,24 +41,11 @@ def plot_trials(pupildf, fname):
     
 def clean_trials(df, trialevents):
     resampled_dict = {}
-    gradient = pupil_utils.get_gradient(df)
     for trialnum in trialevents.Trial.unique():
         starttime, stoptime =  trialevents.loc[trialevents.Trial==trialnum,'TETTime'].iloc[[0,-1]]
         rawtrial = df.loc[(df.TETTime>=starttime) & (df.TETTime<=stoptime)]
-        clean_pupil_left, blinks_left = pupil_utils.chap_deblink(rawtrial.DiameterPupilLeftEye, 
-                                                                 gradient,
-                                                                 zeros_outliers = 20)       
-        clean_pupil_right, blinks_right = pupil_utils.chap_deblink(rawtrial.DiameterPupilRightEye, 
-                                                                   gradient,
-                                                                   zeros_outliers = 20)
-        rawtrial = rawtrial.assign(DiameterPupilLeftEye=clean_pupil_left, 
-                                   BlinksLeft=blinks_left,
-                                   DiameterPupilRightEye=clean_pupil_right, 
-                                   BlinksRight=blinks_right) 
-        rawtrial['BlinksLR'] = rawtrial[['BlinksLeft','BlinksRight']].sum(axis=1, min_count=1)
-        rawtrial.loc[rawtrial['BlinksLR']>1, 'BlinksLR'] = 1.0    
-        trial_resamp = pupil_utils.resamp_filt_data(rawtrial, filt_type='low', string_cols=['CurrentObject'])
-        trial_resamp['neyes'] = 2 - (int(np.isnan(clean_pupil_left).all()) + int(np.isnan(clean_pupil_right).all()))
+        cleantrial = pupil_utils.deblink(rawtrial)
+        trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=['CurrentObject'])
         resampled_dict[trialnum] = trial_resamp        
     dfresamp = pd.concat(resampled_dict, names=['Trial','Timestamp'])
     return dfresamp
@@ -91,7 +78,7 @@ def get_trial_events(df):
     trialevents['Condition'] = np.repeat(['Letter', 'Category'], 12)
     return trialevents
 
-    
+   
 def proc_subject(fname):
     """Given an infile of raw pupil data, saves out:
         1. Session level data with dilation data summarized for each trial
@@ -99,15 +86,11 @@ def proc_subject(fname):
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
     df = pd.read_csv(fname, sep="\t")
-    df[['DiameterPupilLeftEye','DiameterPupilRightEye']] = df[['DiameterPupilLeftEye','DiameterPupilRightEye']].replace(-1, np.nan)
     trialevents = get_trial_events(df)
     dfresamp = clean_trials(df, trialevents)
     blinkpct = pd.DataFrame(dfresamp.groupby(level='Trial').BlinksLR.mean())
     blink_outname = pupil_utils.get_outfile(fname, "_BlinkPct.csv")
     blinkpct.to_csv(blink_outname, index=True)
-    neyesdf = pd.DataFrame(dfresamp.groupby(level='Trial').neyes.mean())
-    neyes_outname = pupil_utils.get_outfile(fname, "_nEyes.csv")
-    neyesdf.to_csv(neyes_outname, index=True)
     dfresamp500ms = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('500ms', level='Timestamp').mean())
     pupildf = dfresamp500ms.reset_index()[['Subject','Trial','Timestamp','DiameterPupilLRFilt']]
     pupildf.Timestamp = pupildf.Timestamp.dt.strftime('%H:%M:%S.%f')
