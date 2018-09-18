@@ -29,10 +29,11 @@ import pupil_utils
     
 
 
-def plot_trials(df, fname):
+def plot_trials(pupildf, fname):
     outfile = pupil_utils.get_outfile(fname, "_PupilPlot.png")
-    for trial in df.index.get_level_values('Trial').unique():
-        df.loc[trial].DiameterPupilLRFilt.plot(label=trial)
+    f, ax = plt.subplots()
+    for trial in pupildf.Trial.unique():
+        pupildf.loc[pupildf.Trial==trial].plot(x='Timestamp',y='DiameterPupilLRFilt', label=trial, ax=ax)
     plt.legend()
     plt.savefig(outfile)  
     plt.close()
@@ -109,9 +110,10 @@ def proc_subject(fname):
     neyesdf.to_csv(neyes_outname, index=True)
     dfresamp500ms = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('500ms', level='Timestamp').mean())
     pupildf = dfresamp500ms.reset_index()[['Subject','Trial','Timestamp','DiameterPupilLRFilt']]
+    pupildf.Timestamp = pupildf.Timestamp.dt.strftime('%H:%M:%S.%f')
     pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
-    pupildf.to_csv(pupil_outname, index=True)
-    plot_trials(dfresamp500ms, fname)
+    pupildf.to_csv(pupil_outname, index=False)
+    plot_trials(pupildf, fname)
 
 
     
