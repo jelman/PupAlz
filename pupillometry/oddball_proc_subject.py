@@ -127,17 +127,6 @@ def get_event_ts(pupilts, events):
     return event_ts
 
 
-def pupil_irf(x):
-    s1 = 50000.
-    n1 = 10.1
-    tmax1 = 0.930
-    return s1 * ((x**n1) * (np.e**((-n1*x)/tmax1)))
-
-
-def convolve_reg(event_ts, kernel):
-    return fftconvolve(event_ts, kernel, 'full')[:-(len(kernel)-1)]
-
-
 def plot_event(signal_filt, trg_ts, std_ts, kernel, infile):
     """Plot peri-stimulus timecourse of each event type as well as the 
     canonical pupil response function"""

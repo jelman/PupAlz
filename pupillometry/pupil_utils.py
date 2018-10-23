@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.signal import butter, filtfilt
 import matlab_wrapper
+from scipy.signal import fftconvolve
 
 
 def zscore(x):
@@ -167,6 +168,21 @@ def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
         dfresamp = dfresamp.merge(stringdf, left_index=True, right_index=True)
     return dfresamp
 
+
+def pupil_irf(x, s1=50000., n1=10.1, tmax=0.930):
+    return s1 * ((x**n1) * (np.e**((-n1*x)/tmax)))
+
+
+def convolve_reg(event_ts, kernel):
+    return fftconvolve(event_ts, kernel, 'full')[:-(len(kernel)-1)]
+
+
+def d_pupil_irf(x):
+    y = pupil_irf(x)
+    dy = np.zeros(y.shape,np.float)
+    dy[0:-1] = np.diff(y)/np.diff(x)
+    dy[-1] = (y[-1] - y[-2])/(x[-1] - x[-2])
+    return dy
 
 
 def plot_qc(dfresamp, infile):
