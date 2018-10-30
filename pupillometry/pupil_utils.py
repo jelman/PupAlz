@@ -177,7 +177,7 @@ def convolve_reg(event_ts, kernel):
     return fftconvolve(event_ts, kernel, 'full')[:-(len(kernel)-1)]
 
 
-def d_pupil_irf(x):
+def d_pupil_irf(x, s1=50000., n1=10.1, tmax=0.930):
     y = pupil_irf(x)
     dy = np.zeros(y.shape,np.float)
     dy[0:-1] = np.diff(y)/np.diff(x)
