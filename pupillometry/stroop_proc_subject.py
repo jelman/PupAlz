@@ -32,8 +32,7 @@ import nitime.viz as viz
 from nistats.regression import ARModel, OLSModel
 import pupil_utils
 import re
-from nipy.modalities.fmri.glm import GeneralLinearModel
-
+import Tkinter,tkFileDialog
 
 def split_df(dfresamp, eprime):
     """Create separate dataframes:
@@ -291,13 +290,27 @@ def proc_subject(pupil_fname, eprime_fname):
     
 if __name__ == '__main__':
     if len(sys.argv) == 1:
+        print ''
         print 'USAGE: %s <raw pupil file> <eprime file>' % os.path.basename(sys.argv[0])
-        print 'Takes eye tracker data text file (*recoded.gazedata) and eprime' 
+        print 'Takes eye tracker data text file (*.gazedata) and eprime' 
         print 'converted from .edat to .csv as input. '
         print 'Removes artifacts, filters, and calculates peristimulus dilation'
         print 'for congruent, incongruent, and the contrast between the two.'
         print 'Processes single subject data and outputs csv files for use in'
         print 'further group analysis.'
+        root = Tkinter.Tk()
+        root.withdraw()
+        # Select files to process
+        pupil_fname = tkFileDialog.askopenfilenames(parent=root,
+                                                    title='Choose pupil gazedata file to parse',
+                                                    filetypes = (("gazedata files","*.gazedata"),("all files","*.*")))[0]
+        eprime_fname = tkFileDialog.askopenfilenames(parent=root,
+                                                    title='Choose eprime file to parse',
+                                                    filetypes = (("e[rime files","*.csv"),("all files","*.*")))[0]
+        
+        # Run script
+        proc_subject(pupil_fname, eprime_fname)
+
     else:
         pupil_fname = sys.argv[1]
         eprime_fname = sys.argv[2]
