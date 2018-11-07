@@ -50,7 +50,8 @@ def split_df(dfresamp, eprime):
     sessdf = sessdf.join(eprimesub.set_index('TrialId'))    
     newcols = ['TrialMean','TrialMax','TrialSD']    
     sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
-    max_samples = dfresamp.reset_index().groupby(['TrialId','CurrentObject']).size().max()
+    #max_samples = dfresamp.reset_index().groupby(['TrialId','CurrentObject']).size().max()
+    max_samples = dfresamp.reset_index().groupby('TrialId').size().max()
     trialidx = [x*.033 for x in range(max_samples)]
     condf = pd.DataFrame(index=trialidx)
     condf['Condition'] = 'Congruent'
@@ -91,7 +92,10 @@ def get_trial_dils(pupil_dils, fix_onset, stim_onset, tpost=3.):
     post_event = stim_onset + pd.to_timedelta(tpost, unit='s')    
     #baseline = pupil_dils[fix_onset:stim_onset].mean()
     baseline = pupil_dils[stim_onset]
+    #baseline = pupil_dils[fix_onset]
     trial_dils = pupil_dils[stim_onset:post_event] - baseline
+    #trial_dils = pupil_dils[fix_onset:post_event] - baseline
+    #trial_dils = pupil_dils[fix_onset:post_event]
     return trial_dils
 
 
@@ -137,42 +141,21 @@ def get_event_ts(pupilts, events):
     return event_ts
 
 
-def plot_event(signal_filt, con_ts, incon_ts, neut_ts, kernel, infile):
+def plot_event(signal_filt, con_ts, incon_ts, neut_ts, kernel, infile, plot_kernel=True):
     """Plot peri-stimulus timecourse of each event type as well as the 
     canonical pupil response function"""
     outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
     plt.ioff()
     all_events = con_ts.data + (incon_ts.data*2) + (neut_ts.data*3)
     all_events_ts = ts.TimeSeries(all_events, sampling_rate=30., time_unit='s')
-    all_era = nta.EventRelatedAnalyzer(signal_filt, all_events_ts, len_et=90, correct_baseline=True)
+    all_era = nta.EventRelatedAnalyzer(signal_filt, all_events_ts, len_et=90, correct_baseline=False)
     fig, ax = plt.subplots()
     viz.plot_tseries(all_era.eta, yerror=all_era.ets, fig=fig)
-    ax.plot((all_era.eta.time*(10**-12)), kernel)
+    if plot_kernel:
+        ax.plot((all_era.eta.time*(10**-12)), kernel)
     ax.legend(['Congruent','Incongruent','Neutral'])
     fig.savefig(outfile)
     plt.close(fig)
-  
-def orthogonalize(y, x):
-    """Orthogonalize variable y with respect to variable x. Convert 1-d array
-    to 2-d array with shape (n, 1)"""
-    yT = np.atleast_2d(y).T
-    xT = np.atleast_2d(x).T
-    model = OLSModel(xT).fit(yT)
-    return model.resid.squeeze()
-    
-def regressor_tempderiv(event_ts, kernel_x):
-    """Takes an array of event onset times and an array of timepoints
-    within each event. First calculates a kernel based on the pupil irf, as 
-    well as the temporal derivative. COnvolves the event onset times with both 
-    to get an event regressor and regressor for the temporal derivative. 
-    Then orthogonalizes the temporal derivative regressor with respect to the 
-    event regressor."""
-    kernel = pupil_utils.pupil_irf(kernel_x, s1=1000., tmax=1.30)
-    dkernel = pupil_utils.d_pupil_irf(kernel_x,  s1=1000., tmax=1.30)
-    event_reg = pupil_utils.convolve_reg(event_ts, kernel)
-    td_reg = pupil_utils.convolve_reg(event_ts, dkernel)
-    td_reg_orth = orthogonalize(td_reg, event_reg)
-    return event_reg, td_reg_orth
 
     
 def ts_glm(pupilts, con_onsets, incon_onsets, neut_onsets, blinks, sampling_rate=30.):
@@ -191,13 +174,12 @@ def ts_glm(pupilts, con_onsets, incon_onsets, neut_onsets, blinks, sampling_rate
     neut_ts = get_event_ts(pupilts, neut_onsets.xs('Stimulus', level=1))    
     kernel_end_sec = 3.
     kernel_length = kernel_end_sec / (1/sampling_rate)
-    kernel_x = np.linspace(0, kernel_end_sec, int(kernel_length))
-    
-    con_reg, con_td_reg = regressor_tempderiv(con_ts, kernel_x)
-    incon_reg, incon_td_reg = regressor_tempderiv(incon_ts, kernel_x)
-    neut_reg, neut_td_reg = regressor_tempderiv(neut_ts, kernel_x)
-    kernel = pupil_utils.pupil_irf(kernel_x, s1=1000., tmax=1.30)
-    plot_event(signal_filt, con_ts, incon_ts, neut_ts, kernel, pupil_fname)
+    kernel_x = np.linspace(0, kernel_end_sec, int(kernel_length)) 
+    con_reg, con_td_reg = pupil_utils.regressor_tempderiv(con_ts, kernel_x)
+    incon_reg, incon_td_reg = pupil_utils.regressor_tempderiv(incon_ts, kernel_x)
+    neut_reg, neut_td_reg = pupil_utils.regressor_tempderiv(neut_ts, kernel_x)
+    #kernel = pupil_utils.pupil_irf(kernel_x, s1=1000., tmax=1.30)
+    #plot_event(signal_filt, con_ts, incon_ts, neut_ts, kernel, pupil_fname)
     intercept = np.ones_like(signal_filt.data)
     X = np.array(np.vstack((intercept, incon_reg, con_reg, neut_reg, blinks.values)).T)
     Y = np.atleast_2d(signal_filt).T
@@ -207,16 +189,7 @@ def ts_glm(pupilts, con_onsets, incon_onsets, neut_onsets, blinks, sampling_rate
     tNeut = float(model.Tcontrast([0,0,0,1,0]).t)
     tIncon_Neut = float(model.Tcontrast([0,1,0,-1,0]).t)
     tCon_Neut = float(model.Tcontrast([0,0,1,-1,0]).t)
-    tIncon_Con = float(model.Tcontrast([0,1,-1,0,0]).t)
-#    model = GeneralLinearModel(X)
-#    model.fit(Y, model='ar1')    
-#    int_beta, incon_beta, con_beta, neut_beta, blinks_beta = model.get_beta().T[0] 
-#    cval = np.array([[0,1,0,-1,0],
-#                    [0,0,1,-1,0],
-#                    [0,1,-1,0,0]])
-#    zvalInconNeut = model.contrast(cval[0,:]).z_score()[0]    
-#    zvalConNeut = model.contrast(cval[1,:]).z_score()[0]    
-#    zvalInconCon = model.contrast(cval[2,:]).z_score()[0]    
+    tIncon_Con = float(model.Tcontrast([0,1,-1,0,0]).t)   
     resultdict = {'Incon_t':tIncon, 'Con_t':tCon, 'Neut_t':tNeut,
                   'InconNeut_t':tIncon_Neut, 'ConNeut_t':tCon_Neut, 
                   'InconCon_t':tIncon_Con}
@@ -234,7 +207,7 @@ def save_glm_results(glm_results, infile):
 def plot_pstc(allconddf, infile):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
     outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
-    p = sns.tsplot(data=allconddf, time="Timepoint",condition="Condition", unit="TrialId", value="Dilation").figure
+    p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief").figure
     p.savefig(outfile)  
     plt.close()
     
@@ -245,7 +218,6 @@ def save_pstc(allconddf, infile):
     pstcdf = allconddf.groupby(['Subject','Condition','Timepoint']).mean().reset_index()
     pstcdf.to_csv(outfile, index=False)
     
-
 
 def proc_subject(pupil_fname, eprime_fname):
     """Given an infile of raw pupil data, saves out:
@@ -283,6 +255,7 @@ def proc_subject(pupil_fname, eprime_fname):
     allconddf = allconddf.append(neutraldf_long).reset_index(drop=True)
     allconddf['Subject'] = sessdf.Subject.iat[0]
     allconddf['Session'] = sessdf.Session.iat[0]    
+    plot_pstc(allconddf, pupil_fname)
     save_pstc(allconddf, pupil_fname)
     sessout = pupil_utils.get_outfile(pupil_fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)
@@ -316,3 +289,10 @@ if __name__ == '__main__':
         eprime_fname = sys.argv[2]
         proc_subject(pupil_fname, eprime_fname)
 
+
+"""
+TODO:
+    Add previous trial condition to sessdf
+    Create regressor for previous trial condition in glm
+    
+"""

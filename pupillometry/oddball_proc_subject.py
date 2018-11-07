@@ -30,7 +30,7 @@ from scipy.signal import fftconvolve
 import nitime.timeseries as ts
 import nitime.analysis as nta
 import nitime.viz as viz
-from nipy.modalities.fmri.glm import GeneralLinearModel
+from nistats.regression import ARModel, OLSModel
 import pupil_utils
 
 
@@ -141,6 +141,7 @@ def plot_event(signal_filt, trg_ts, std_ts, kernel, infile):
     ax.legend(['Standard','Target','Pupil IRF'])
     fig.savefig(outfile)
     plt.close(fig)
+
     
     
 def ts_glm(pupilts, trg_onsets, std_onsets, blinks, sampling_rate=30.):
@@ -150,20 +151,18 @@ def ts_glm(pupilts, trg_onsets, std_onsets, blinks, sampling_rate=30.):
     kernel_end_sec = 2.5
     kernel_length = kernel_end_sec / (1/sampling_rate)
     kernel_x = np.linspace(0, kernel_end_sec, int(kernel_length))
-    kernel = pupil_irf(kernel_x)
-    trg_reg = convolve_reg(trg_ts, kernel)
-    std_reg = convolve_reg(std_ts, kernel)
-    plot_event(signal_filt, trg_ts, std_ts, kernel, fname)
+    trg_reg, trg_td_reg = pupil_utils.regressor_tempderiv(trg_ts, kernel_x)
+    std_reg, std_td_reg = pupil_utils.regressor_tempderiv(std_ts, kernel_x)
+    #kernel = pupil_irf(kernel_x)
+    #plot_event(signal_filt, trg_ts, std_ts, kernel, fname)
     intercept = np.ones_like(signal_filt.data)
     X = np.array(np.vstack((intercept, trg_reg, std_reg, blinks.values)).T)
     Y = np.atleast_2d(signal_filt).T
-    model = GeneralLinearModel(X)
-    model.fit(Y, model='ar1')    
-    int_beta, trg_beta, std_beta, blinks_beta = model.get_beta().T[0] 
-    cval = [0,1,-1, 0]
-    con = model.contrast(cval)    
-    zval = con.z_score()[0]
-    resultdict = {'Target_Beta':trg_beta, 'Standard_Beta':std_beta, 'ContrastZ':zval}
+    model = ARModel(X, rho=1.).fit(Y)
+    tTrg = float(model.Tcontrast([0,1,0,0]).t)
+    tStd = float(model.Tcontrast([0,0,1,0]).t)
+    tTrgStd = float(model.Tcontrast([0,1,-1,0]).t)   
+    resultdict = {'Target_Beta':tTrg, 'Standard_Beta':tStd, 'ContrastT':tTrgStd}
     return resultdict
 
 
@@ -178,7 +177,7 @@ def save_glm_results(glm_results, infile):
 def plot_pstc(allconddf, infile):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
     outfile = pupil_utils.get_proc_outfile(infile, '_PSTCplot.png')
-    p = sns.tsplot(data=allconddf, time="Timepoint",condition="Condition", unit="TrialId", value="Dilation").figure
+    p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief").figure
     p.savefig(outfile)  
     plt.close()
     
@@ -218,6 +217,7 @@ def proc_subject(fname):
     allconddf = targdf_long.append(standdf_long).reset_index(drop=True)
     allconddf['Subject'] = sessdf.Subject.iat[0]
     allconddf['Session'] = sessdf.Session.iat[0]    
+    plot_pstc(allconddf, fname)
     save_pstc(allconddf, fname)
     sessout = pupil_utils.get_proc_outfile(fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)

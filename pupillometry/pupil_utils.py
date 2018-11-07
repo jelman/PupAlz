@@ -7,6 +7,8 @@ import seaborn as sns
 from scipy.signal import butter, filtfilt
 import matlab_wrapper
 from scipy.signal import fftconvolve
+from nistats.regression import ARModel, OLSModel
+
 
 
 def zscore(x):
@@ -173,8 +175,32 @@ def pupil_irf(x, s1=50000., n1=10.1, tmax=0.930):
     return s1 * ((x**n1) * (np.e**((-n1*x)/tmax)))
 
 
+def orthogonalize(y, x):
+    """Orthogonalize variable y with respect to variable x. Convert 1-d array
+    to 2-d array with shape (n, 1)"""
+    yT = np.atleast_2d(y).T
+    xT = np.atleast_2d(x).T
+    model = OLSModel(xT).fit(yT)
+    return model.resid.squeeze()
+
+
 def convolve_reg(event_ts, kernel):
     return fftconvolve(event_ts, kernel, 'full')[:-(len(kernel)-1)]
+
+    
+def regressor_tempderiv(event_ts, kernel_x):
+    """Takes an array of event onset times and an array of timepoints
+    within each event. First calculates a kernel based on the pupil irf, as 
+    well as the temporal derivative. COnvolves the event onset times with both 
+    to get an event regressor and regressor for the temporal derivative. 
+    Then orthogonalizes the temporal derivative regressor with respect to the 
+    event regressor."""
+    kernel = pupil_irf(kernel_x, s1=1000., tmax=1.30)
+    dkernel = d_pupil_irf(kernel_x,  s1=1000., tmax=1.30)
+    event_reg = convolve_reg(event_ts, kernel)
+    td_reg = convolve_reg(event_ts, dkernel)
+    td_reg_orth = orthogonalize(td_reg, event_reg)
+    return event_reg, td_reg_orth
 
 
 def d_pupil_irf(x, s1=50000., n1=10.1, tmax=0.930):
