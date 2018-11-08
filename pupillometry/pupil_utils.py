@@ -39,17 +39,14 @@ def get_outfile(infile, suffix):
 
      
 def get_blinks(diameter, validity):
-    """Get vector of blink or bad trials by combining validity field and any 
-    samples with a change in dilation greater than 1mm. Mark ~100ms before 
-    blink onset and after blink offset as a blink."""
+    """Get vector of blink or bad trials. Combines validity field, any 
+    samples with a change in dilation greater than 1mm, any sample that is 
+    outside 2mm from the median."""
     invalid = validity==4
     bigdiff = diameter.diff().abs()>1
-    blinks = np.where(invalid | bigdiff, 1, 0)
-#    startidx = np.where(np.diff(blinks)==1)[0]
-#    stopidx = np.where(np.diff(blinks)==-1)[0]
-#    startblinks = np.concatenate((startidx, startidx-1,startidx-2))
-#    stopblinks = np.concatenate((stopidx+1, stopidx+2,stopidx+3))
-#    blinks[np.concatenate((startblinks, stopblinks))] = 1
+    bigdiameter = diameter > (np.median(diameter[diameter>0]) + 2)
+    smalldiameter = diameter < (np.median(diameter[diameter>0]) - 2)
+    blinks = np.where(invalid | bigdiff | bigdiameter | smalldiameter, 1, 0)
     return blinks
 
 
