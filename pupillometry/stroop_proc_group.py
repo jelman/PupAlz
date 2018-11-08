@@ -101,6 +101,7 @@ def proc_group(datadir):
     alldat.to_csv(outfile, index=False)
     pstcdf = get_pstc_data(datadir)    
     pstcdf = pd.merge(pstcdf, blink_df, on=['Subject','Session'])
+    pstcdf = pstcdf[pstcdf.Timepoint<=3.5]
     pstc_outfile = os.path.join(datadir, 'stroop_group_pstc_' + tstamp + '.png')
     plot_group_pstc(pstcdf, pstc_outfile)
 
