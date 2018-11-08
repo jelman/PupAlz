@@ -32,6 +32,8 @@ import nitime.analysis as nta
 import nitime.viz as viz
 from nistats.regression import ARModel, OLSModel
 import pupil_utils
+import Tkinter,tkFileDialog
+
 
 
 
@@ -230,6 +232,14 @@ if __name__ == '__main__':
         print 'Removes artifacts, filters, and calculates peristimulus dilation'
         print 'for target vs. non-targets. Processes single subject data and'
         print 'outputs csv files for use in further group analysis.'
+        root = Tkinter.Tk()
+        root.withdraw()
+        # Select files to process
+        pupil_fname = tkFileDialog.askopenfilenames(parent=root,
+                                                    title='Choose pupil gazedata file to process',
+                                                    filetypes = (("gazedata files","*recoded.gazedata"),("all files","*.*")))[0]
+        proc_subject(fname)
+
     else:
         fname = sys.argv[1]
         proc_subject(fname)
