@@ -235,7 +235,7 @@ if __name__ == '__main__':
         root = Tkinter.Tk()
         root.withdraw()
         # Select files to process
-        pupil_fname = tkFileDialog.askopenfilenames(parent=root,
+        fname = tkFileDialog.askopenfilenames(parent=root,
                                                     title='Choose pupil gazedata file to process',
                                                     filetypes = (("gazedata files","*recoded.gazedata"),("all files","*.*")))[0]
         proc_subject(fname)
