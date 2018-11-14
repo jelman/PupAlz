@@ -34,7 +34,7 @@ def plot_trials(pupildf, fname):
     outfile = pupil_utils.get_outfile(fname, "_PupilPlot.png")
     f, ax = plt.subplots()
     for trial in pupildf.Trial.unique():
-        pupildf.loc[pupildf.Trial==trial].plot(x='Timestamp',y='DiameterPupilLRFilt', label=trial, ax=ax)
+        pupildf.loc[pupildf.Trial==trial].plot(x='Timestamp',y='Dilation', label=trial, ax=ax)
     plt.legend()
     plt.savefig(outfile)  
     plt.close()
@@ -47,6 +47,7 @@ def clean_trials(df, trialevents):
         rawtrial = df.loc[(df.TETTime>=starttime) & (df.TETTime<=stoptime)]
         cleantrial = pupil_utils.deblink(rawtrial)
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=['CurrentObject'])
+        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['DiameterPupilLRFilt'].iat[0]
         resampled_dict[trialnum] = trial_resamp        
     dfresamp = pd.concat(resampled_dict, names=['Trial','Timestamp'])
     return dfresamp
@@ -93,7 +94,7 @@ def proc_subject(fname):
     blink_outname = pupil_utils.get_outfile(fname, "_BlinkPct.csv")
     blinkpct.to_csv(blink_outname, index=True)
     dfresamp500ms = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('500ms', level='Timestamp', closed='right', label='right').mean())
-    pupildf = dfresamp500ms.reset_index()[['Subject','Trial','Timestamp','DiameterPupilLRFilt']]
+    pupildf = dfresamp500ms.reset_index()[['Subject','Trial','Timestamp','Dilation','DiameterPupilLRFilt']]
     pupildf.Timestamp = pupildf.Timestamp.dt.strftime('%H:%M:%S.%f')
     pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
     pupildf.to_csv(pupil_outname, index=False)
