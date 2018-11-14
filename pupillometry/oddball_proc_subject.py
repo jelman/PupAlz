@@ -86,8 +86,10 @@ def get_trial_dils(pupil_dils, onset, tpre=.5, tpost=2.5):
     trial data."""
     pre_event = onset - pd.to_timedelta(tpre, unit='s')
     post_event = onset + pd.to_timedelta(tpost, unit='s')    
-    baseline = pupil_dils[pre_event:onset].mean()
-    trial_dils = pupil_dils[onset:post_event] - baseline
+    #baseline = pupil_dils[pre_event:onset].mean()
+    baseline = pupil_dils[onset]
+    #trial_dils = pupil_dils[onset:post_event] - baseline
+    trial_dils = pupil_dils[pre_event:post_event] - baseline
     return trial_dils
 
 
@@ -236,11 +238,11 @@ if __name__ == '__main__':
         root.withdraw()
         # Select files to process
         fname = tkFileDialog.askopenfilenames(parent=root,
-                                                    title='Choose pupil gazedata file to process',
+                                                    title='Choose Oddball pupil gazedata file to process',
                                                     filetypes = (("gazedata files","*recoded.gazedata"),("all files","*.*")))[0]
         proc_subject(fname)
 
     else:
-        fname = sys.argv[1]
+        fname = os.path.abspath(sys.argv[1])
         proc_subject(fname)
 

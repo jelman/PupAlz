@@ -127,7 +127,7 @@ if __name__ == '__main__':
         root.withdraw()
         # Select files to process
         fname = tkFileDialog.askopenfilenames(parent=root,
-                                              title='Choose pupil gazedata file to process',
+                                              title='Choose Digit Span pupil gazedata file to process',
                                               filetypes = (("gazedata files","*.gazedata"),
                                                            ("all files","*.*")))[0]
 
@@ -136,6 +136,6 @@ if __name__ == '__main__':
         proc_subject(fname)
 
     else:
-        fname = sys.argv[1]
+        fname = os.path.abspath(sys.argv[1])
         proc_subject(fname)
 
