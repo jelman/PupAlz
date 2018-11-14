@@ -31,7 +31,7 @@ import Tkinter,tkFileDialog
 
 
 def plot_trials(pupildf, fname):
-    palette = sns.cubehelix_palette(len(df_load_avg.Load.unique()), start=0, rot=-.25)
+    palette = sns.cubehelix_palette(len(pupildf.Load.unique()), start=0, rot=-.25)
     p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Load", palette=palette,legend="brief")
     plt.xticks(rotation=45)
     plt.tight_layout()
