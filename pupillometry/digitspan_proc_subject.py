@@ -26,7 +26,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pupil_utils
-    
+import Tkinter,tkFileDialog
+
 
 
 def plot_trials(pupildf, fname):
@@ -115,11 +116,25 @@ def proc_subject(fname):
     
 if __name__ == '__main__':
     if len(sys.argv) == 1:
+        print ''
         print 'USAGE: %s <raw pupil file> ' % os.path.basename(sys.argv[0])
+        print 'Processes single subject data from digit span task and outputs' 
+        print 'csv files for use in further group analysis.'
         print 'Takes eye tracker data text file (*.gazedata) as input.'
-        print 'Removes artifacts, filters, and calculates peristimulus dilation'
-        print 'for target vs. non-targets. Processes single subject data and'
-        print 'outputs csv files for use in further group analysis.'
+        print 'Removes artifacts, filters, and calculates dilation per 1sec.'
+        print ''
+        root = Tkinter.Tk()
+        root.withdraw()
+        # Select files to process
+        fname = tkFileDialog.askopenfilenames(parent=root,
+                                              title='Choose pupil gazedata file to process',
+                                              filetypes = (("gazedata files","*.gazedata"),
+                                                           ("all files","*.*")))[0]
+
+        
+        # Run script
+        proc_subject(fname)
+
     else:
         fname = sys.argv[1]
         proc_subject(fname)
