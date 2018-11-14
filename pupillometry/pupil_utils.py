@@ -143,7 +143,7 @@ def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
     df['Time'] = (df.TETTime - df.TETTime.iloc[0]) / 1000.
     df['Timestamp'] = pd.to_datetime(df.Time, unit='s')
     df = df.set_index('Timestamp')
-    dfresamp = df.resample(bin_length).mean()
+    dfresamp = df.resample(bin_length, closed='right', label='right').mean()
     dfresamp['Subject'] = df.Subject[0]
     nearestcols = ['Subject','Session','TrialId','CRESP','ACC','RT',
                    'BlinksLeft','BlinksRight','BlinksLR'] 

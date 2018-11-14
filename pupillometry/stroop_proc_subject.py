@@ -93,8 +93,8 @@ def get_trial_dils(pupil_dils, fix_onset, stim_onset, tpost=3.):
     #baseline = pupil_dils[fix_onset:stim_onset].mean()
     baseline = pupil_dils[stim_onset]
     #baseline = pupil_dils[fix_onset]
-    trial_dils = pupil_dils[stim_onset:post_event] - baseline
-    #trial_dils = pupil_dils[fix_onset:post_event] - baseline
+    #trial_dils = pupil_dils[stim_onset:post_event] - baseline
+    trial_dils = pupil_dils[fix_onset:post_event] - baseline
     #trial_dils = pupil_dils[fix_onset:post_event]
     return trial_dils
 
@@ -206,7 +206,7 @@ def save_glm_results(glm_results, infile):
         
 def plot_pstc(allconddf, infile):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
-    outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
+    outfile = pupil_utils.get_outfile(infile, '_PSTCplotStimBaseline.png')
     p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief").figure
     p.savefig(outfile)  
     plt.close()
@@ -275,10 +275,10 @@ if __name__ == '__main__':
         root.withdraw()
         # Select files to process
         pupil_fname = tkFileDialog.askopenfilenames(parent=root,
-                                                    title='Choose pupil gazedata file to parse',
+                                                    title='Choose pupil gazedata file to process',
                                                     filetypes = (("gazedata files","*.gazedata"),("all files","*.*")))[0]
         eprime_fname = tkFileDialog.askopenfilenames(parent=root,
-                                                    title='Choose eprime file to parse',
+                                                    title='Choose eprime file to process',
                                                     filetypes = (("e[rime files","*.csv"),("all files","*.*")))[0]
         
         # Run script
