@@ -86,8 +86,8 @@ def get_trial_dils(pupil_dils, onset, tpre=.5, tpost=2.5):
     trial data."""
     pre_event = onset - pd.to_timedelta(tpre, unit='s')
     post_event = onset + pd.to_timedelta(tpost, unit='s')    
-    #baseline = pupil_dils[pre_event:onset].mean()
-    baseline = pupil_dils[onset]
+    baseline = pupil_dils[pre_event:onset].mean()
+#    baseline = pupil_dils[onset]
     #trial_dils = pupil_dils[onset:post_event] - baseline
     trial_dils = pupil_dils[pre_event:post_event] - baseline
     return trial_dils
@@ -178,15 +178,16 @@ def save_glm_results(glm_results, infile):
         f.write(glm_json)
         
         
-def plot_pstc(allconddf, infile):
+def plot_pstc(allconddf, infile, trial_start=0.):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
     outfile = pupil_utils.get_proc_outfile(infile, '_PSTCplot.png')
-    p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief").figure
-    p.savefig(outfile)  
+    p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief")
+    plt.axvline(trial_start, color='k', linestyle='--')
+    p.figure.savefig(outfile)  
     plt.close()
     
 
-def save_pstc(allconddf, infile):
+def save_pstc(allconddf, infile, trial_start=0.):
     """Save out peristimulus timecourse plots"""
     outfile = pupil_utils.get_proc_outfile(infile, '_PSTCdata.csv')
     pstcdf = allconddf.groupby(['Subject','Condition','Timepoint']).mean().reset_index()
@@ -218,10 +219,10 @@ def proc_subject(fname):
     glm_results['Session'] = dfresamp.loc[dfresamp.index[0], 'Session']
     glm_results['Subject'] = dfresamp.loc[dfresamp.index[0], 'Subject']
     save_glm_results(glm_results, fname)
-    allconddf = targdf_long.append(standdf_long).reset_index(drop=True)
+    allconddf = standdf_long.append(targdf_long).reset_index(drop=True)
     allconddf['Subject'] = sessdf.Subject.iat[0]
     allconddf['Session'] = sessdf.Session.iat[0]    
-    plot_pstc(allconddf, fname)
+    plot_pstc(allconddf, fname, trial_start=.5)
     save_pstc(allconddf, fname)
     sessout = pupil_utils.get_proc_outfile(fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)

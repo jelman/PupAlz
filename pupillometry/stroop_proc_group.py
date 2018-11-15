@@ -81,11 +81,12 @@ def unstack_conditions(dflong):
     return df
 
 
-def plot_group_pstc(pstcdf, outfile):
+def plot_group_pstc(pstcdf, outfile, trial_start=0.):
     pstcdf = pstcdf[pstcdf.BlinkPct<.5]
     pstcdf['Subject_Session'] =  pstcdf.Subject.astype('str') + "_" + pstcdf.Session.astype('str')
-    p = sns.lineplot(data=pstcdf, x="Timepoint",y="Dilation", hue="Condition").figure
-    p.savefig(outfile)  
+    p = sns.lineplot(data=pstcdf, x="Timepoint",y="Dilation", hue="Condition")
+    plt.axvline(trial_start, color='k', linestyle='--')
+    p.figure.savefig(outfile)  
     plt.close()    
     
     
@@ -103,7 +104,7 @@ def proc_group(datadir):
     pstcdf = pd.merge(pstcdf, blink_df, on=['Subject','Session'])
     pstcdf = pstcdf[pstcdf.Timepoint<=3.5]
     pstc_outfile = os.path.join(datadir, 'stroop_group_pstc_' + tstamp + '.png')
-    plot_group_pstc(pstcdf, pstc_outfile)
+    plot_group_pstc(pstcdf, pstc_outfile, trial_start=.759)
 
 
 if __name__ == '__main__':

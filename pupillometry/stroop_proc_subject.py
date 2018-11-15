@@ -204,11 +204,12 @@ def save_glm_results(glm_results, infile):
         f.write(glm_json)
         
         
-def plot_pstc(allconddf, infile):
+def plot_pstc(allconddf, infile, trial_start=0.):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
     outfile = pupil_utils.get_outfile(infile, '_PSTCplotStimBaseline.png')
-    p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief").figure
-    p.savefig(outfile)  
+    p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief")
+    plt.axvline(trial_start, color='k', linestyle='--')
+    p.figure.savefig(outfile)  
     plt.close()
     
 
@@ -255,7 +256,7 @@ def proc_subject(pupil_fname, eprime_fname):
     allconddf = allconddf.append(neutraldf_long).reset_index(drop=True)
     allconddf['Subject'] = sessdf.Subject.iat[0]
     allconddf['Session'] = sessdf.Session.iat[0]    
-    plot_pstc(allconddf, pupil_fname)
+    plot_pstc(allconddf, pupil_fname, trial_start=.759)
     save_pstc(allconddf, pupil_fname)
     sessout = pupil_utils.get_outfile(pupil_fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)

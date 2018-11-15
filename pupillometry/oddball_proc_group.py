@@ -100,11 +100,12 @@ def calc_cnr(df):
     return df
 
 
-def plot_group_pstc(pstcdf, outfile):
+def plot_group_pstc(pstcdf, outfile, trial_start=0.):
     pstcdf = pstcdf[pstcdf.BlinkPct<.5]
     pstcdf['Subject_Session'] =  pstcdf.Subject.astype('str') + "_" + pstcdf.Session.astype('str')
-    p = sns.lineplot(data=pstcdf, x="Timepoint",y="Dilation", hue="Condition").figure
-    p.savefig(outfile)  
+    p = sns.lineplot(data=pstcdf, x="Timepoint",y="Dilation", hue="Condition")
+    plt.axvline(trial_start, color='k', linestyle='--')
+    p.figure.savefig(outfile)  
     plt.close()    
     
     
@@ -122,7 +123,7 @@ def proc_group(datadir):
     pstc_df = get_pstc_data(datadir)    
     pstc_df = pd.merge(pstc_df, blink_df, on=['Subject','Session'])
     pstc_outfile = os.path.join(datadir, 'oddball_group_pstc_' + tstamp + '.png')
-    plot_group_pstc(pstc_df, pstc_outfile)
+    plot_group_pstc(pstc_df, pstc_outfile, trial_start=.5)
 
 
 if __name__ == '__main__':
