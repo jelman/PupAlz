@@ -185,15 +185,15 @@ def convolve_reg(event_ts, kernel):
     return fftconvolve(event_ts, kernel, 'full')[:-(len(kernel)-1)]
 
     
-def regressor_tempderiv(event_ts, kernel_x):
+def regressor_tempderiv(event_ts, kernel_x, s1=50000., n1=10.1, tmax=0.930):
     """Takes an array of event onset times and an array of timepoints
     within each event. First calculates a kernel based on the pupil irf, as 
     well as the temporal derivative. COnvolves the event onset times with both 
     to get an event regressor and regressor for the temporal derivative. 
     Then orthogonalizes the temporal derivative regressor with respect to the 
     event regressor."""
-    kernel = pupil_irf(kernel_x, s1=1000., tmax=1.30)
-    dkernel = d_pupil_irf(kernel_x,  s1=1000., tmax=1.30)
+    kernel = pupil_irf(kernel_x, s1=s1, n1=n1, tmax=tmax)
+    dkernel = d_pupil_irf(kernel_x,  s1=s1, n1=n1, tmax=tmax)
     event_reg = convolve_reg(event_ts, kernel)
     td_reg = convolve_reg(event_ts, dkernel)
     td_reg_orth = orthogonalize(td_reg, event_reg)
