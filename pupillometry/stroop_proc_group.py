@@ -22,6 +22,7 @@ import seaborn as sns
 from datetime import datetime
 from glob import glob
 import json
+import pupil_utils
 
 def glob_files(datadir, suffix):
     pth = os.path.join(datadir, '*')
@@ -85,6 +86,8 @@ def plot_group_pstc(pstcdf, outfile, trial_start=0.):
     pstcdf = pstcdf[pstcdf.BlinkPct<.5]
     pstcdf['Subject_Session'] =  pstcdf.Subject.astype('str') + "_" + pstcdf.Session.astype('str')
     p = sns.lineplot(data=pstcdf, x="Timepoint",y="Dilation", hue="Condition")
+    kernel = pupil_utils.pupil_irf(pstcdf.Timepoint.unique(), s1=1000., tmax=1.30)
+    plt.plot(pstcdf.Timepoint.unique(), kernel, color='dimgrey', linestyle='--')
     plt.axvline(trial_start, color='k', linestyle='--')
     p.figure.savefig(outfile)  
     plt.close()    
@@ -102,9 +105,9 @@ def proc_group(datadir):
     alldat.to_csv(outfile, index=False)
     pstcdf = get_pstc_data(datadir)    
     pstcdf = pd.merge(pstcdf, blink_df, on=['Subject','Session'])
-    pstcdf = pstcdf[pstcdf.Timepoint<=3.5]
+    pstcdf = pstcdf[pstcdf.Timepoint<=3.0]
     pstc_outfile = os.path.join(datadir, 'stroop_group_pstc_' + tstamp + '.png')
-    plot_group_pstc(pstcdf, pstc_outfile, trial_start=.759)
+    plot_group_pstc(pstcdf, pstc_outfile, trial_start=0.)
 
 
 if __name__ == '__main__':
