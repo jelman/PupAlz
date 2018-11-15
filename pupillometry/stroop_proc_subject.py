@@ -85,16 +85,17 @@ def get_blink_pct(dfresamp, infile=None):
     return trial_blinkpct
 
 
-def get_trial_dils(pupil_dils, fix_onset, stim_onset, tpost=3.):
+def get_trial_dils(pupil_dils, fix_onset, stim_onset, tpre=-.5,tpost=3.0):
     """Given pupil dilations for entire session and an onset, returns a 
     normalized timecourse for the trial. Calculates a baseline to subtract from
     trial data."""
-    post_event = stim_onset + pd.to_timedelta(tpost, unit='s')    
+    post_event = stim_onset + pd.to_timedelta(tpost, unit='s')   
+    pre_event = stim_onset + pd.to_timedelta(tpre, unit='s')
     #baseline = pupil_dils[fix_onset:stim_onset].mean()
-    baseline = pupil_dils[stim_onset]
+    baseline = pupil_dils[pre_event:stim_onset].mean()
     #baseline = pupil_dils[fix_onset]
     #trial_dils = pupil_dils[stim_onset:post_event] - baseline
-    trial_dils = pupil_dils[fix_onset:post_event] - baseline
+    trial_dils = pupil_dils[stim_onset:post_event] - baseline
     #trial_dils = pupil_dils[fix_onset:post_event]
     return trial_dils
 
@@ -175,9 +176,9 @@ def ts_glm(pupilts, con_onsets, incon_onsets, neut_onsets, blinks, sampling_rate
     kernel_end_sec = 3.
     kernel_length = kernel_end_sec / (1/sampling_rate)
     kernel_x = np.linspace(0, kernel_end_sec, int(kernel_length)) 
-    con_reg, con_td_reg = pupil_utils.regressor_tempderiv(con_ts, kernel_x)
-    incon_reg, incon_td_reg = pupil_utils.regressor_tempderiv(incon_ts, kernel_x)
-    neut_reg, neut_td_reg = pupil_utils.regressor_tempderiv(neut_ts, kernel_x)
+    con_reg, con_td_reg = pupil_utils.regressor_tempderiv(con_ts, kernel_x, s1=1000., tmax=1.30)
+    incon_reg, incon_td_reg = pupil_utils.regressor_tempderiv(incon_ts, kernel_x, s1=1000., tmax=1.30)
+    neut_reg, neut_td_reg = pupil_utils.regressor_tempderiv(neut_ts, kernel_x, s1=1000., tmax=1.30)
     #kernel = pupil_utils.pupil_irf(kernel_x, s1=1000., tmax=1.30)
     #plot_event(signal_filt, con_ts, incon_ts, neut_ts, kernel, pupil_fname)
     intercept = np.ones_like(signal_filt.data)
@@ -208,6 +209,8 @@ def plot_pstc(allconddf, infile, trial_start=0.):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
     outfile = pupil_utils.get_outfile(infile, '_PSTCplotStimBaseline.png')
     p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief")
+    kernel = pupil_utils.pupil_irf(allconddf.Timepoint.unique(), s1=1000., tmax=1.30)
+    plt.plot(allconddf.Timepoint.unique(), kernel, color='dimgrey', linestyle='--')
     plt.axvline(trial_start, color='k', linestyle='--')
     p.figure.savefig(outfile)  
     plt.close()
@@ -256,7 +259,8 @@ def proc_subject(pupil_fname, eprime_fname):
     allconddf = allconddf.append(neutraldf_long).reset_index(drop=True)
     allconddf['Subject'] = sessdf.Subject.iat[0]
     allconddf['Session'] = sessdf.Session.iat[0]    
-    plot_pstc(allconddf, pupil_fname, trial_start=.759)
+    allconddf = allconddf[allconddf.Timepoint<3.0]
+    plot_pstc(allconddf, pupil_fname, trial_start=.0)
     save_pstc(allconddf, pupil_fname)
     sessout = pupil_utils.get_outfile(pupil_fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)
