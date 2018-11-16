@@ -31,7 +31,7 @@ import Tkinter,tkFileDialog
 
 
 def plot_trials(pupildf, fname):
-    palette = sns.cubehelix_palette(len(pupildf.Load.unique()), start=0, rot=-.25)
+    palette = sns.cubehelix_palette(len(pupildf.Load.unique()))
     p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Load", palette=palette,legend="brief")
     plt.xticks(rotation=45)
     plt.tight_layout()
@@ -46,11 +46,12 @@ def clean_trials(trialevents):
         starttime, stoptime =  trialevents.loc[trialevents.Trial==trial,'TETTime'].iloc[[0,-1]]
         rawtrial = trialevents.loc[(trialevents.TETTime>=starttime) & (trialevents.TETTime<=stoptime)]
         cleantrial = pupil_utils.deblink(rawtrial)
-        cleantrial = cleantrial[cleantrial.Condition=='Record']
         string_cols = ['Load', 'Trial', 'Condition']
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=string_cols)
-        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['DiameterPupilLRFilt'].iat[0]
-#        trial_resamp.index = trial_resamp.index - trial_resamp.index[trial_resamp.Condition.searchsorted('Record')][0]
+        baseline = trial_resamp.loc[trial_resamp.Condition=='Ready', 'DiameterPupilLRFilt'].mean()
+        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - baseline
+        trial_resamp = trial_resamp[trial_resamp.Condition=='Record']
+        trial_resamp.index = pd.DatetimeIndex((trial_resamp.index - trial_resamp.index[0]).values)
         resampled_dict[trial] = trial_resamp        
     dfresamp = pd.concat(resampled_dict, names=['Trial','Timestamp'])
     return dfresamp
