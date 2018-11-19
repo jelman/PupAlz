@@ -37,23 +37,35 @@ def get_outfile(infile, suffix):
     outfile = os.path.join(outdir, fname)
     return outfile
 
-     
-def get_blinks(diameter, validity):
+def get_iqr(x):
+    q75, q25 = np.percentile(x.dropna(), [75 ,25])
+    iqr = q75 - q25
+    min = q25 - (iqr*1.5)
+    max = q75 + (iqr*1.5)
+    return min, max
+
+
+def get_blinks(diameter, validity, pupilthresh_hi=5., pupilthresh_lo=1., gradient_crit=4, n_timepoints=1):
     """Get vector of blink or bad trials. Combines validity field, any 
     samples with a change in dilation greater than 1mm, any sample that is 
     outside 2mm from the median."""
     invalid = validity==4
-    bigdiff = diameter.diff().abs()>1
-    bigdiameter = diameter > (np.median(diameter[diameter>0]) + 2)
-    smalldiameter = diameter < (np.median(diameter[diameter>0]) - 2)
-    blinks = np.where(invalid | bigdiff | bigdiameter | smalldiameter, 1, 0)
+    diffmin, diffmax = get_iqr(diameter.diff(n_timepoints))
+    bigdiff = (np.abs(diameter.diff(n_timepoints)) < diffmin) | (np.abs(diameter.diff(-1*n_timepoints)) > diffmax)
+    zoutliers = np.abs(zscore(diameter)) > 2.5
+    mindiameter, maxdiameter = get_iqr(diameter)
+    diameter_outliers = (diameter < mindiameter) | (diameter > maxdiameter) 
+    pupil_outlier = (diameter > pupilthresh_hi) | (diameter < pupilthresh_lo)
+    blinks = np.where(invalid | bigdiff | zoutliers | diameter_outliers | pupil_outlier, 1, 0)
     return blinks
 
 
-def deblink(df):
+def deblink(df, **kwargs):
     """ Set dilation of all blink trials to nan."""
-    df['BlinksLeft'] = get_blinks(df.DiameterPupilLeftEye, df.ValidityLeftEye)
-    df['BlinksRight'] = get_blinks(df.DiameterPupilRightEye, df.ValidityRightEye)
+    df.loc[df.DiameterPupilLeftEye<0, 'DiameterPupilLeftEye'] = np.nan
+    df.loc[df.DiameterPupilRightEye<0, 'DiameterPupilRightEye'] = np.nan
+    df['BlinksLeft'] = get_blinks(df.DiameterPupilLeftEye, df.ValidityLeftEye, **kwargs)
+    df['BlinksRight'] = get_blinks(df.DiameterPupilRightEye, df.ValidityRightEye, **kwargs)
     df.loc[df.BlinksLeft==1, "DiameterPupilLeftEye"] = np.nan
     df.loc[df.BlinksRight==1, "DiameterPupilRightEye"] = np.nan    
     df['BlinksLR'] = np.where(df.BlinksLeft+df.BlinksRight>=2, 1, 0)
@@ -97,16 +109,11 @@ def butter_lowpass_filter(signal, highcut=4., fs=30., order=3):
 
 
 
-def get_gradient(df, gradient_crit=4):
-    diffleft = df.DiameterPupilLeftEye.replace(-1,np.nan).diff()
-    diffright = df.DiameterPupilRightEye.replace(-1,np.nan).diff()
-    diffleftmean = np.nanmean(diffleft)
-    diffrightmean = np.nanmean(diffright)
-    diffleftstd = np.nanstd(diffleft)
-    diffrightstd = np.nanstd(diffright)
-    gradientleft = diffleftmean + (gradient_crit*diffleftstd)
-    gradientright = diffrightmean + (gradient_crit*diffrightstd)
-    gradient = np.mean([gradientleft, gradientright])
+def get_gradient(diameter, gradient_crit=4, n_timepoints=1):
+    diff = diameter.replace(-1,np.nan).diff(n_timepoints)
+    diffmean = np.nanmean(diff)
+    diffstd = np.nanstd(diff)
+    gradient = diffmean + (gradient_crit*diffstd)
     return gradient
     
     
