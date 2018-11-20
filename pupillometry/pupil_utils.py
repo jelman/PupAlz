@@ -38,7 +38,11 @@ def get_outfile(infile, suffix):
     return outfile
 
 def get_iqr(x):
-    q75, q25 = np.percentile(x.dropna(), [75 ,25])
+    try:
+        q75, q25 = np.percentile(x.dropna(), [75 ,25])
+    except IndexError:
+        print 'Cannot calculate quartile from array of nan'
+        q75, q25 = np.nan, np.nan
     iqr = q75 - q25
     min = q25 - (iqr*1.5)
     max = q75 + (iqr*1.5)
@@ -60,8 +64,9 @@ def get_blinks(diameter, validity, pupilthresh_hi=5., pupilthresh_lo=1., gradien
     return blinks
 
 
-def deblink(df, **kwargs):
+def deblink(dfraw, **kwargs):
     """ Set dilation of all blink trials to nan."""
+    df = dfraw.copy()
     df.loc[df.DiameterPupilLeftEye<0, 'DiameterPupilLeftEye'] = np.nan
     df.loc[df.DiameterPupilRightEye<0, 'DiameterPupilRightEye'] = np.nan
     df['BlinksLeft'] = get_blinks(df.DiameterPupilLeftEye, df.ValidityLeftEye, **kwargs)
