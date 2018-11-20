@@ -88,24 +88,24 @@ def get_trial_events(df):
     return trialevents
 
    
-def proc_subject(fname):
+def proc_subject(filelist):
     """Given an infile of raw pupil data, saves out:
         1. Session level data with dilation data summarized for each trial
         2. Dataframe of average peristumulus timecourse for each condition
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
-    df = pd.read_csv(fname, sep="\t")
-    trialevents = get_trial_events(df)
-    dfresamp = clean_trials(df, trialevents)
-    blinkpct = pd.DataFrame(dfresamp.groupby(level='Trial').BlinksLR.mean())
-    blink_outname = pupil_utils.get_outfile(fname, "_BlinkPct.csv")
-    blinkpct.to_csv(blink_outname, index=True)
-    dfresamp1s = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('1S', level='Timestamp', closed='right', label='right').mean())
-    pupildf = dfresamp1s.reset_index()[['Subject','Trial','Timestamp','Dilation','DiameterPupilLRFilt']]
-#    pupildf.Timestamp = pupildf.Timestamp.dt.strftime('%S')
-    pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
-    pupildf.to_csv(pupil_outname, index=False)
-    plot_trials(pupildf, fname)
+    for fname in filelist:
+        df = pd.read_csv(fname, sep="\t")
+        trialevents = get_trial_events(df)
+        dfresamp = clean_trials(df, trialevents)
+        blinkpct = pd.DataFrame(dfresamp.groupby(level='Trial').BlinksLR.mean())
+        blink_outname = pupil_utils.get_outfile(fname, "_BlinkPct.csv")
+        blinkpct.to_csv(blink_outname, index=True)
+        dfresamp1s = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('1S', level='Timestamp', closed='right', label='right').mean())
+        pupildf = dfresamp1s.reset_index()[['Subject','Trial','Timestamp','Dilation','DiameterPupilLRFilt']]
+        pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
+        pupildf.to_csv(pupil_outname, index=False)
+        plot_trials(pupildf, fname)
 
 
     
@@ -121,14 +121,15 @@ if __name__ == '__main__':
         root = Tkinter.Tk()
         root.withdraw()
         # Select files to process
-        fname = tkFileDialog.askopenfilenames(parent=root,
+        filelist = tkFileDialog.askopenfilenames(parent=root,
                                               title='Choose Fluency pupil gazedata file to process',
                                               filetypes = (("gazedata files","*.gazedata"),
-                                                           ("all files","*.*")))[0]        
+                                                           ("all files","*.*")))       
+        filelist = list(filelist)
         # Run script
-        proc_subject(fname)
+        proc_subject(filelist)
 
     else:
-        fname = os.path.abspath(sys.argv[1])
-        proc_subject(fname)
+        filelist = [os.path.abspath(f) for f in sys.argv[1:]]
+        proc_subject(filelist)
 

@@ -194,38 +194,39 @@ def save_pstc(allconddf, infile, trial_start=0.):
     pstcdf.to_csv(outfile, index=False)
     
 
-def proc_subject(fname):
+def proc_subject(filelist):
     """Given an infile of raw pupil data, saves out:
         1. Session level data with dilation data summarized for each trial
         2. Dataframe of average peristumulus timecourse for each condition
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
-    df = pd.read_csv(fname, sep="\t")
-    df = pupil_utils.deblink(df)
-    dfresamp = pupil_utils.resamp_filt_data(df)
-    dfresamp['Condition'] = np.where(dfresamp.CRESP==5, 'Standard', 'Target')
-    pupil_utils.plot_qc(dfresamp, fname.replace("/raw/","/proc/"))
-    sessdf, targdf, standdf = split_df(dfresamp)
-    sessdf['BlinkPct'] = get_blink_pct(dfresamp, fname)
-    dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
-    sessdf, targdf, standdf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
-                                              targdf, standdf)
-    targdf_long = reshape_df(targdf)
-    standdf_long = reshape_df(standdf)
-    glm_results = ts_glm(dfresamp.zDiameterPupilLRFilt, 
-                         sessdf.loc[sessdf.Condition=='Target', 'Timestamp'],
-                         sessdf.loc[sessdf.Condition=='Standard', 'Timestamp'],
-                         dfresamp.BlinksLR)
-    glm_results['Session'] = dfresamp.loc[dfresamp.index[0], 'Session']
-    glm_results['Subject'] = dfresamp.loc[dfresamp.index[0], 'Subject']
-    save_glm_results(glm_results, fname)
-    allconddf = standdf_long.append(targdf_long).reset_index(drop=True)
-    allconddf['Subject'] = sessdf.Subject.iat[0]
-    allconddf['Session'] = sessdf.Session.iat[0]    
-    plot_pstc(allconddf, fname, trial_start=.5)
-    save_pstc(allconddf, fname)
-    sessout = pupil_utils.get_proc_outfile(fname, '_SessionData.csv')    
-    sessdf.to_csv(sessout, index=False)
+    for fname in filelist:
+        df = pd.read_csv(fname, sep="\t")
+        df = pupil_utils.deblink(df)
+        dfresamp = pupil_utils.resamp_filt_data(df)
+        dfresamp['Condition'] = np.where(dfresamp.CRESP==5, 'Standard', 'Target')
+        pupil_utils.plot_qc(dfresamp, fname.replace("/raw/","/proc/"))
+        sessdf, targdf, standdf = split_df(dfresamp)
+        sessdf['BlinkPct'] = get_blink_pct(dfresamp, fname)
+        dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
+        sessdf, targdf, standdf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
+                                                  targdf, standdf)
+        targdf_long = reshape_df(targdf)
+        standdf_long = reshape_df(standdf)
+        glm_results = ts_glm(dfresamp.zDiameterPupilLRFilt, 
+                             sessdf.loc[sessdf.Condition=='Target', 'Timestamp'],
+                             sessdf.loc[sessdf.Condition=='Standard', 'Timestamp'],
+                             dfresamp.BlinksLR)
+        glm_results['Session'] = dfresamp.loc[dfresamp.index[0], 'Session']
+        glm_results['Subject'] = dfresamp.loc[dfresamp.index[0], 'Subject']
+        save_glm_results(glm_results, fname)
+        allconddf = standdf_long.append(targdf_long).reset_index(drop=True)
+        allconddf['Subject'] = sessdf.Subject.iat[0]
+        allconddf['Session'] = sessdf.Session.iat[0]    
+        plot_pstc(allconddf, fname, trial_start=.5)
+        save_pstc(allconddf, fname)
+        sessout = pupil_utils.get_proc_outfile(fname, '_SessionData.csv')    
+        sessdf.to_csv(sessout, index=False)
 
     
 if __name__ == '__main__':
@@ -238,12 +239,15 @@ if __name__ == '__main__':
         root = Tkinter.Tk()
         root.withdraw()
         # Select files to process
-        fname = tkFileDialog.askopenfilenames(parent=root,
+        filelist = tkFileDialog.askopenfilenames(parent=root,
                                                     title='Choose Oddball pupil gazedata file to process',
                                                     filetypes = (("gazedata files","*recoded.gazedata"),("all files","*.*")))[0]
-        proc_subject(fname)
+        filelist = list(filelist)
+        # Run script
+        proc_subject(filelist)
 
     else:
-        fname = os.path.abspath(sys.argv[1])
-        proc_subject(fname)
+        filelist = [os.path.abspath(f) for f in sys.argv[1:]]
+        proc_subject(filelist)
+
 
