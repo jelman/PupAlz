@@ -17,7 +17,7 @@ following actions:
 
 import pandas as pd
 import re
-import os, sys, shutil
+import os, sys
 from glob import glob
 import numpy as np
 
@@ -31,18 +31,19 @@ def check_setup(rawdir):
         setup_status = 0
     return setup_status
 
-def get_subid(datadir):
-    dirname = os.path.split(datadir)[-1]
-    return dirname.replace('_', '-')
+
+def get_subid(fname):
+    subid = re.findall(r'Oddball-\d{3}\b', fname)[0].replace('Oddball-','')
+    return subid
 
 
 def get_session(infile):
     """Returns session as listed in the infile name."""
     if infile.find("Session") == -1:
-        raise ValueError("No session number in filename!")
+        session = 1
     else:
         session = infile.split("Session")[1][0]
-        return int(session)
+    return int(session)
     
     
 def swap_response(df):
@@ -55,45 +56,28 @@ def swap_response(df):
     return df
 
 
-def recode_gaze_data(infile, subid):
-    df = pd.read_csv(infile, sep="\t")
-    df['Subject'] = subid
-    df['Session'] = get_session(infile)  
+def recode_gaze_data(fname, session):
+    df = pd.read_excel(fname)
+    df['Session'] = session
     df = swap_response(df)
     return df
     
 
-def rename_gaze_file(oldfile, subid):
-    fname = os.path.basename(oldfile)
-    fname = re.sub('[0-9]\.gazedata', 'recoded.gazedata', fname)
-    splitname = fname.split('-')
-    new_fname = '-'.join([splitname[0], subid, splitname[2]])
-    newfile = os.path.join(datadir, new_fname) 
+def rename_gaze_file(procdir, subid, session):
+    new_fname = ''.join(['Oddball-', str(subid), '-', str(session), '.recoded.gazedata'])
+    newfile = os.path.join(procdir, new_fname)
     return newfile       
         
     
-def setup_subject(datadir):
-    subid = get_subid(datadir)
-    rawdir = os.path.join(datadir, 'raw')
-    setup_status = check_setup(rawdir)
-    if setup_status==1:
-        print 'Subject {} already set up, skipping...'.format(subid)
-        sys.exit()
-    if not os.path.exists(rawdir):
-        os.makedirs(rawdir)
-    globstr = os.path.join(datadir, '*gazedata')
-    gazefiles = glob(globstr)
-    for oldfile in gazefiles:
-        if oldfile.find('Practice') != -1:
-            continue
-        df = recode_gaze_data(oldfile, subid)
-        newfile = rename_gaze_file(oldfile, subid)
-        df.to_csv(newfile, index=False, sep="\t")
-    files = [f for f in os.listdir(datadir) if os.path.isfile(os.path.join(datadir,f))]
-    for f in files:
-        src = os.path.join(datadir, f)
-        trg = os.path.join(rawdir, f)
-        shutil.move(src, trg)
+def setup_subject(fname):
+    subid = get_subid(fname)
+    session = get_session(fname)
+    rawdir = os.path.dirname(fname)
+    procdir = rawdir.replace('/raw', '/proc')
+    df = recode_gaze_data(fname, session)
+    newfile = rename_gaze_file(procdir, subid, session)
+    df.to_csv(newfile, index=False, sep="\t")
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -107,5 +91,5 @@ if __name__ == '__main__':
         print '  4. Saves out new .gazedata file with "recoded" suffix'
         print '  5. Moves all files to "raw" directory'
     else:
-        datadir = sys.argv[1]
-        setup_subject(datadir)
+        fname = sys.argv[1]
+        setup_subject(fname)
