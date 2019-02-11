@@ -14,19 +14,7 @@ from nistats.regression import ARModel, OLSModel
 def zscore(x):
     """ Z-score numpy array or pandas series """
     return (x - x.mean()) / x.std()
-
-
-def get_proc_outfile(infile, suffix):
-    """Take infile to derive outdir. Changes path from raw to proc
-    and adds suffix to basename."""
-    outdir = os.path.dirname(infile)
-    outdir = outdir.replace("raw", "proc")
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-    fname = os.path.splitext(os.path.basename(infile))[0].split('_')[1] + suffix
-    outfile = os.path.join(outdir, fname)
-    return outfile
-    
+   
 
 def get_outfile(infile, suffix):
     """Take infile to derive outdir. Adds suffix to basename."""
