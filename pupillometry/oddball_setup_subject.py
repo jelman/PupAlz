@@ -64,7 +64,7 @@ def recode_gaze_data(fname, session):
     
 
 def rename_gaze_file(procdir, subid, session):
-    new_fname = ''.join(['Oddball-', str(subid), '-', str(session), '.recoded.gazedata'])
+    new_fname = ''.join(['Oddball-', str(subid), '-', str(session), '_recoded.gazedata'])
     newfile = os.path.join(procdir, new_fname)
     return newfile       
         
