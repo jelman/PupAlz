@@ -31,6 +31,7 @@ import Tkinter,tkFileDialog
 
 
 def plot_trials(pupildf, fname):
+    sns.set_style("ticks")
     palette = sns.color_palette("deep", n_colors=len(pupildf.Trial.unique()))
     p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Trial", palette=palette, legend="brief")
     plt.xticks(rotation=45)
@@ -106,6 +107,7 @@ def proc_subject(filelist):
         pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
+
 
 
     
