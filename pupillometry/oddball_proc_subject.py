@@ -241,7 +241,7 @@ if __name__ == '__main__':
         # Select files to process
         filelist = tkFileDialog.askopenfilenames(parent=root,
                                                     title='Choose Oddball pupil gazedata file to process',
-                                                    filetypes = (("gazedata files","*recoded.gazedata"),("all files","*.*")))[0]
+                                                    filetypes = (("gazedata files","*recoded.gazedata"),("all files","*.*")))
         filelist = list(filelist)
         # Run script
         proc_subject(filelist)
