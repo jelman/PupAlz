@@ -25,8 +25,7 @@ import json
 import pupil_utils
 
 def glob_files(datadir, suffix):
-    pth = os.path.join(datadir, '*')
-    globstr = os.path.join(pth, '*'+suffix)
+    globstr = os.path.join(datadir, '*'+suffix)
     return glob(globstr)
     
     
