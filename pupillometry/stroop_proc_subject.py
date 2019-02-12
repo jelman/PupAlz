@@ -229,7 +229,12 @@ def proc_subject(pupil_fname, eprime_fname):
         2. Dataframe of average peristumulus timecourse for each condition
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
-    df = pd.read_csv(pupil_fname, sep="\t")
+    if os.path.splitext(pupil_fname)[-1] == ".gazedata":
+        df = pd.read_csv(pupil_fname, sep="\t")
+    elif os.path.splitext(pupil_fname)[-1] == ".xlsx":
+        df = pd.read_excel(pupil_fname)
+    else: 
+        raise IOError, 'Could not open {}'.format(pupil_fname)
     df = pupil_utils.deblink(df)
     df.CurrentObject.replace('StimulusRecord','Stimulus',inplace=True)
     dfresamp = pupil_utils.resamp_filt_data(df, filt_type='band', string_cols=['TrialId','CurrentObject'])
