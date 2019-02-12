@@ -32,7 +32,7 @@ import Tkinter,tkFileDialog
 
 def plot_trials(pupildf, fname):
     palette = sns.color_palette('muted',n_colors=len(pupildf['Trial'].unique()))
-    p = sns.lineplot(data=pupildf, x="Timestamp",y="DiameterPupilLRFilt", hue="Trial", palette=palette,legend="brief")
+    p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Trial", palette=palette,legend="brief")
     plt.xticks(rotation=45)
     plt.tight_layout()
     plot_outname = pupil_utils.get_outfile(fname, "_PupilPlot.png")
@@ -96,7 +96,7 @@ def proc_subject(filelist):
         dfresamp = dfresamp.loc[good_trials]
         dfresamp = dfresamp.reset_index(level='Trial', drop=True).reset_index()
         pupildf = dfresamp.groupby('Trial').apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean()).reset_index()
-        pupildf = pupildf[['Subject','Trial','Timestamp','DiameterPupilLRFilt']]
+        pupildf = pupildf[['Subject','Trial','Timestamp','Dilation','DiameterPupilLRFilt']]
         pupildf.loc[:,'Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
         pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
