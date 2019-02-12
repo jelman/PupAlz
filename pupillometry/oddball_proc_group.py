@@ -24,8 +24,7 @@ from glob import glob
 import json
 
 def glob_files(datadir, suffix):
-    pth = os.path.join(datadir, '*/proc')
-    globstr = os.path.join(pth, '*'+suffix)
+    globstr = os.path.join(datadir, '*'+suffix)
     return glob(globstr)
     
     
@@ -121,6 +120,8 @@ def proc_group(datadir):
     outfile = os.path.join(datadir, 'oddball_group_data_' + tstamp + '.csv')
     alldat.to_csv(outfile, index=False)
     pstc_df = get_pstc_data(datadir)    
+    pstc_df = pstc_df.astype({"Subject": str, "Session": str})
+    blink_df = blink_df.astype({"Subject": str, "Session": str})
     pstc_df = pd.merge(pstc_df, blink_df, on=['Subject','Session'])
     pstc_outfile = os.path.join(datadir, 'oddball_group_pstc_' + tstamp + '.png')
     plot_group_pstc(pstc_df, pstc_outfile, trial_start=.5)
