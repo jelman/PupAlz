@@ -37,7 +37,7 @@ def get_sess_data(datadir):
         sess_list.append(subdf)
     sessdf = pd.concat(sess_list).reset_index(drop=True)
     sessdf = sessdf.drop(columns=['TrialId', 'BlinkPct'])
-    sessdf = sessdf.groupby(['Subject','Session','Condition']).median()
+    sessdf = sessdf.groupby(['Subject','Session','Condition']).mean()
     return sessdf.reset_index()
 
 
