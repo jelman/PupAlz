@@ -32,7 +32,7 @@ from __future__ import division, print_function, absolute_import
 
 def plot_trials(pupildf, fname):
     palette = sns.cubehelix_palette(len(pupildf.Load.unique()))
-    p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Load", palette=palette,legend="brief")
+    p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Load", palette=palette, legend="brief", ci=None)
     plt.xticks(rotation=45)
     plt.tight_layout()
     plot_outname = pupil_utils.get_outfile(fname, "_PupilPlot.png")
@@ -100,15 +100,13 @@ def proc_subject(filelist):
         df = pd.read_csv(fname, sep="\t")
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
-        blinkpct = pd.DataFrame(dfresamp.groupby(level='Trial').BlinksLR.mean())
-        blink_outname = pupil_utils.get_outfile(fname, "_BlinkPct.csv")
-        blinkpct.to_csv(blink_outname, index=True)
-        good_trials = blinkpct.index[blinkpct.BlinksLR<.33]
-        dfresamp = dfresamp.loc[good_trials]
-        dfresamp = dfresamp.reset_index(level='Trial', drop=True).reset_index()
-        df_load_avg = dfresamp.groupby(['Load','Timestamp']).mean().reset_index()
-        pupildf = df_load_avg.groupby('Load').apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean()).reset_index()
-        pupildf = pupildf[['Subject','Load','Timestamp','Dilation','DiameterPupilLRFilt']]
+        dfresamp = dfresamp.reset_index(level='Timestamp').set_index(['Load','Trial'])
+#        df_load_avg = dfresamp.groupby(['Load','Timestamp']).mean().reset_index()
+        pupildf = dfresamp.groupby(level=['Load','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean()).reset_index()
+        pupilcols = ['Subject', 'Trial', 'Load', 'Timestamp', 'Dilation',
+                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
+        pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
+                                                 'BlinksLR':'BlinkPct'})
         pupildf['Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
         pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
