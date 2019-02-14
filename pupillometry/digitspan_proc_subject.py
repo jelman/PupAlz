@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pupil_utils
 import Tkinter,tkFileDialog
-
+from __future__ import division, print_function, absolute_import
 
 
 def plot_trials(pupildf, fname):
@@ -49,7 +49,8 @@ def clean_trials(trialevents):
         string_cols = ['Load', 'Trial', 'Condition']
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=string_cols)
         baseline = trial_resamp.loc[trial_resamp.Condition=='Ready', 'DiameterPupilLRFilt'].mean()
-        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - baseline
+        trial_resamp['Baseline'] = baseline
+        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
         trial_resamp = trial_resamp[trial_resamp.Condition=='Record']
         trial_resamp.index = pd.DatetimeIndex((trial_resamp.index - trial_resamp.index[0]).values)
         resampled_dict[trial] = trial_resamp        
