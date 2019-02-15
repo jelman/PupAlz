@@ -108,6 +108,8 @@ def proc_subject(filelist):
         pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by='Trial')
+        pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
+                                         'BlinksLR':'BlinkPct'})
         pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
