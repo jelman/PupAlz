@@ -38,7 +38,7 @@ def plot_trials(pupildf, fname):
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.legend(loc='best')
-    plot_outname = pupil_utils.get_outfile(fname, "_PupilPlot.png")
+    plot_outname = pupil_utils.get_proc_outfile(fname, "_PupilPlot.png")
     p.figure.savefig(plot_outname)
     plt.close()
     
@@ -110,7 +110,7 @@ def proc_subject(filelist):
         pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by='Trial')
         pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
-        pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
+        pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
 

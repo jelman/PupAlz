@@ -36,7 +36,7 @@ def plot_trials(pupildf, fname):
     p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Trial", palette=palette,legend="brief")
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plot_outname = pupil_utils.get_outfile(fname, "_PupilPlot.png")
+    plot_outname = pupil_utils.get_proc_outfile(fname, "_PupilPlot.png")
     p.figure.savefig(plot_outname)
     plt.close()
     
@@ -99,7 +99,7 @@ def proc_subject(filelist):
         pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
         pupildf.loc[:,'Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
-        pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
+        pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
 
