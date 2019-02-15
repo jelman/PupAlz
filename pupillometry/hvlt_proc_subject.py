@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pupil_utils
 import Tkinter,tkFileDialog
+from __future__ import division, print_function, absolute_import
 
 
 
@@ -50,7 +51,8 @@ def clean_trials(trialevents):
         string_cols = ['Trial', 'CurrentObject']
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=string_cols)        
         baseline = trial_resamp.loc[trial_resamp.CurrentObject=="Ready","DiameterPupilLRFilt"].last("500ms").mean()
-        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - baseline
+        trial_resamp['Baseline'] = baseline
+        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
         trial_resamp = trial_resamp[trial_resamp.CurrentObject.str.match("PlayWord")]
         trial_resamp.index = pd.DatetimeIndex((trial_resamp.index - trial_resamp.index[0]).values)
         resampled_dict[trial] = trial_resamp        
@@ -89,14 +91,13 @@ def proc_subject(filelist):
         df = pd.read_csv(fname, sep="\t")
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
-        blinkpct = pd.DataFrame(dfresamp.groupby(level='Trial').BlinksLR.mean())
-        blink_outname = pupil_utils.get_outfile(fname, "_BlinkPct.csv")
-        blinkpct.to_csv(blink_outname, index=True)
-        good_trials = blinkpct.index[blinkpct.BlinksLR<.50]
-        dfresamp = dfresamp.loc[good_trials]
         dfresamp = dfresamp.reset_index(level='Trial', drop=True).reset_index()
         pupildf = dfresamp.groupby('Trial').apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean()).reset_index()
-        pupildf = pupildf[['Subject','Trial','Timestamp','Dilation','DiameterPupilLRFilt']]
+        pupilcols = ['Subject', 'Trial', 'Timestamp', 'Dilation',
+                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
+        pupildf = pupildf[pupilcols]
+        pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
+                                         'BlinksLR':'BlinkPct'})
         pupildf.loc[:,'Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
         pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
