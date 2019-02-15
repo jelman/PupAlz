@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pupil_utils
 import Tkinter,tkFileDialog
+from __future__ import division, print_function, absolute_import
 
 
 
@@ -46,16 +47,19 @@ def clean_trials(df, trialevents):
     resampled_dict = {}
     for trialnum in trialevents.Trial.unique():
         basestart, basestop, respstart, respstop =  trialevents.loc[trialevents.Trial==trialnum,'TETTime']
+        condition = trialevents.loc[trialevents.Trial==trialnum,'Condition'].iat[0]
         rawtrial = df.loc[(df.TETTime>=basestart) & (df.TETTime<=respstop)]
-        rawtrial.loc[(rawtrial.TETTime>=basestart) & (rawtrial.TETTime<=basestop),'Condition'] = 'Baseline' 
-        rawtrial.loc[(rawtrial.TETTime>=respstart) & (rawtrial.TETTime<=respstop),'Condition'] = 'Response' 
+        rawtrial.loc[(rawtrial.TETTime>=basestart) & (rawtrial.TETTime<=basestop),'Phase'] = 'Baseline' 
+        rawtrial.loc[(rawtrial.TETTime>=respstart) & (rawtrial.TETTime<=respstop),'Phase'] = 'Response' 
 #        rawtrial = rawtrial[rawtrial.Condition=='Response']
         cleantrial = pupil_utils.deblink(rawtrial)
-        trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=['CurrentObject', 'Condition'])
+        trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=['CurrentObject', 'Phase'])
         baseline = trial_resamp['DiameterPupilLRFilt'].first('500ms').mean()
 #        baseline = trial_resamp.DiameterPupilLRFilt.iat[0]
-        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - baseline
-        trial_resamp = trial_resamp[trial_resamp.Condition=='Response']
+        trial_resamp['Baseline'] = baseline
+        trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
+        trial_resamp = trial_resamp[trial_resamp.Phase=='Response']
+        trial_resamp['Condition'] = condition
         resampled_dict[trialnum] = trial_resamp        
     dfresamp = pd.concat(resampled_dict, names=['Trial','Timestamp'], sort=True)
     return dfresamp
@@ -99,11 +103,11 @@ def proc_subject(filelist):
         df = pd.read_csv(fname, sep="\t")
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(df, trialevents)
-        blinkpct = pd.DataFrame(dfresamp.groupby(level='Trial').BlinksLR.mean())
-        blink_outname = pupil_utils.get_outfile(fname, "_BlinkPct.csv")
-        blinkpct.to_csv(blink_outname, index=True)
-        dfresamp1s = dfresamp.groupby(level='Trial').apply(lambda x: x.resample('1S', level='Timestamp', closed='right', label='right').mean())
-        pupildf = dfresamp1s.reset_index()[['Subject','Trial','Timestamp','Dilation','DiameterPupilLRFilt']]
+        dfresamp = dfresamp.reset_index(drop=False).set_index(['Condition','Trial'])
+        dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1S', on='Timestamp', closed='right', label='right').mean())
+        pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
+                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
+        pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by='Trial')
         pupil_outname = pupil_utils.get_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
