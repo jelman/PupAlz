@@ -1,5 +1,5 @@
+from __future__ import division, print_function, absolute_import
 import os
-import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -41,7 +41,7 @@ def get_iqr(x):
     try:
         q75, q25 = np.percentile(x.dropna(), [75 ,25])
     except IndexError:
-        print 'Cannot calculate quartile from array of nan'
+        print('Cannot calculate quartile from array of nan')
         q75, q25 = np.nan, np.nan
     iqr = q75 - q25
     min = q25 - (iqr*1.5)

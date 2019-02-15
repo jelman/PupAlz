@@ -14,6 +14,7 @@ Calculates subject level measures of pupil dilation and contrast to noise ratios
 Plots group level PTSC. Output can be used for statistical analysis.
 """
 
+from __future__ import division, print_function, absolute_import
 import os
 import sys
 import pandas as pd
@@ -95,7 +96,6 @@ def calc_cnr(df):
     df['CNR2'] = (df.Target_TrialMax - df.Standard_TrialMax) / df.Standard_TrialSD
     df['CNR3'] = df.Target_TrialSD / df.Standard_TrialSD
     df['CNR4'] = (df.Target_TrialMax - df.Standard_TrialMax) / df.Standard_TrialMax
-    df['TargStd_BetaContrast'] = df.Target_Beta - df.Standard_Beta
     return df
 
 
@@ -129,15 +129,16 @@ def proc_group(datadir):
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print 'USAGE: %s <data directory> ' % os.path.basename(sys.argv[0])
-        print 'Searches for datafiles created by oddball_proc_subject.py for use as input.'
-        print 'This includes:'
-        print '  <session>-<subject>_SessionData.csv'
-        print '  <session>-<subject>_PSTCdata.csv'
-        print '  <session>-<subject>_BlinkPct.json'
-        print '  <session>-<subject>_GLMresults.json'
-        print 'Calculates subject level measures of pupil dilation and contrast to noise ratios.'
-        print 'Plots group level PTSC. Output can be used for statistical analysis.'
+        print('USAGE: {} <data directory> '.format(os.path.basename(sys.argv[0])))
+        print('Searches for datafiles created by oddball_proc_subject.py for use as input.')
+        print('This includes:')
+        print('  <session>-<subject>_SessionData.csv')
+        print('  <session>-<subject>_PSTCdata.csv')
+        print('  <session>-<subject>_BlinkPct.json')
+        print('  <session>-<subject>_GLMresults.json')
+        print('Calculates subject level measures of pupil dilation and contrast to noise ratios.')
+        print('Plots group level PTSC. Output can be used for statistical analysis.')
+        print('')
     else:
         datadir = sys.argv[1]
         proc_group(datadir)

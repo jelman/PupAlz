@@ -19,6 +19,7 @@ Hoeks, B. & Levelt, W.J.M. Behavior Research Methods, Instruments, &
     Computers (1993) 25: 16. https://doi.org/10.3758/BF03204445
 """
 
+from __future__ import division, print_function, absolute_import
 import os
 import sys
 import numpy as np
@@ -94,7 +95,6 @@ def get_trial_dils(pupil_dils, fix_onset, stim_onset, tpre=-.5,tpost=3.0):
     #baseline = pupil_dils[fix_onset:stim_onset].mean()
     baseline = pupil_dils[pre_event:stim_onset].mean()
     #baseline = pupil_dils[fix_onset]
-    #trial_dils = pupil_dils[stim_onset:post_event] - baseline
     trial_dils = pupil_dils[stim_onset:post_event] - baseline
     #trial_dils = pupil_dils[fix_onset:post_event]
     return trial_dils
@@ -273,15 +273,15 @@ def proc_subject(pupil_fname, eprime_fname):
     
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print ''
-        print 'USAGE: %s <raw pupil file> <eprime file>' % os.path.basename(sys.argv[0])
-        print 'Takes eye tracker data text file (*.gazedata) and eprime' 
-        print 'converted from .edat to .csv as input. '
-        print 'Removes artifacts, filters, and calculates peristimulus dilation'
-        print 'for congruent, incongruent, and the contrast between the two.'
-        print 'Processes single subject data and outputs csv files for use in'
-        print 'further group analysis.'
-        print ''
+        print('')
+        print('USAGE: {} <raw pupil file> <eprime file>'.format(os.path.basename(sys.argv[0])))
+        print('Takes eye tracker data text file (*.gazedata) and eprime')
+        print('converted from .edat to .csv as input. ')
+        print('Removes artifacts, filters, and calculates peristimulus dilation')
+        print('for congruent, incongruent, and the contrast between the two.')
+        print('Processes single subject data and outputs csv files for use in')
+        print('further group analysis.')
+        print('')
         root = Tkinter.Tk()
         root.withdraw()
         # Select files to process

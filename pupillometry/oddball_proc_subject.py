@@ -19,6 +19,7 @@ Hoeks, B. & Levelt, W.J.M. Behavior Research Methods, Instruments, &
     Computers (1993) 25: 16. https://doi.org/10.3758/BF03204445
 """
 
+from __future__ import division, print_function, absolute_import
 import os
 import sys
 import numpy as np
@@ -231,11 +232,13 @@ def proc_subject(filelist):
     
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print 'USAGE: %s <raw pupil file> ' % os.path.basename(sys.argv[0])
-        print 'Takes eye tracker data text file (*recoded.gazedata) as input.'
-        print 'Removes artifacts, filters, and calculates peristimulus dilation'
-        print 'for target vs. non-targets. Processes single subject data and'
-        print 'outputs csv files for use in further group analysis.'
+        print('USAGE: {} <raw pupil file> '.format(os.path.basename(sys.argv[0])))
+        print('Takes eye tracker data text file (*recoded.gazedata) as input.')
+        print('Removes artifacts, filters, and calculates peristimulus dilation')
+        print('for target vs. non-targets. Processes single subject data and')
+        print('outputs csv files for use in further group analysis.')
+        print('')
+        
         root = Tkinter.Tk()
         root.withdraw()
         # Select files to process
