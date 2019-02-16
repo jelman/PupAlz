@@ -27,8 +27,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pupil_utils
-import Tkinter,tkFileDialog
-
+try:
+    # for Python2
+    import Tkinter as tkinter
+    import tkFileDialog as filedialog
+except ImportError:
+    # for Python3
+    import tkinter
+    from tkinter import filedialog
 
 
 def plot_trials(pupildf, fname):
@@ -126,10 +132,10 @@ if __name__ == '__main__':
         print('Takes eye tracker data text file (*.gazedata) as input.')
         print('Removes artifacts, filters, and calculates dilation per 500ms.')
         print('')
-        root = Tkinter.Tk()
+        root = tkinter.Tk()
         root.withdraw()
         # Select files to process
-        filelist = tkFileDialog.askopenfilenames(parent=root,
+        filelist = filedialog.askopenfilenames(parent=root,
                                               title='Choose Fluency pupil gazedata file to process',
                                               filetypes = (("gazedata files","*.gazedata"),
                                                            ("all files","*.*")))       

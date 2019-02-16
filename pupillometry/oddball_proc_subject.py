@@ -33,8 +33,14 @@ import nitime.analysis as nta
 import nitime.viz as viz
 from nistats.regression import ARModel, OLSModel
 import pupil_utils
-import Tkinter,tkFileDialog
-
+try:
+    # for Python2
+    import Tkinter as tkinter
+    import tkFileDialog as filedialog
+except ImportError:
+    # for Python3
+    import tkinter
+    from tkinter import filedialog
 
 
 
@@ -239,10 +245,10 @@ if __name__ == '__main__':
         print('outputs csv files for use in further group analysis.')
         print('')
         
-        root = Tkinter.Tk()
+        root = tkinter.Tk()
         root.withdraw()
         # Select files to process
-        filelist = tkFileDialog.askopenfilenames(parent=root,
+        filelist = filedialog.askopenfilenames(parent=root,
                                                     title='Choose Oddball pupil gazedata file to process',
                                                     filetypes = (("gazedata files","*recoded.gazedata"),("all files","*.*")))
         filelist = list(filelist)

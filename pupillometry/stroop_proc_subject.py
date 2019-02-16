@@ -33,8 +33,16 @@ import nitime.viz as viz
 from nistats.regression import ARModel, OLSModel
 import pupil_utils
 import re
-import Tkinter,tkFileDialog
-
+try:
+    # for Python2
+    import Tkinter as tkinter
+    import tkFileDialog as filedialog
+except ImportError:
+    # for Python3
+    import tkinter
+    from tkinter import filedialog
+    
+    
 def split_df(dfresamp, eprime):
     """Create separate dataframes:
         1. Session level df with trial info
@@ -282,13 +290,13 @@ if __name__ == '__main__':
         print('Processes single subject data and outputs csv files for use in')
         print('further group analysis.')
         print('')
-        root = Tkinter.Tk()
+        root = tkinter.Tk()
         root.withdraw()
         # Select files to process
-        pupil_fname = tkFileDialog.askopenfilenames(parent=root,
+        pupil_fname = filedialog.askopenfilenames(parent=root,
                                                     title='Choose Stroop pupil gazedata file to process',
                                                     filetypes = (("gazedata files","*.gazedata"),("all files","*.*")))[0]
-        eprime_fname = tkFileDialog.askopenfilenames(parent=root,
+        eprime_fname = filedialog.askopenfilenames(parent=root,
                                                     title='Choose Stroop eprime file to process',
                                                     filetypes = (("eprime files","*.csv"),("all files","*.*")))[0]
         
