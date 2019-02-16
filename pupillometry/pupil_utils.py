@@ -23,7 +23,7 @@ def get_proc_outfile(infile, suffix):
     outdir = outdir.replace("raw", "proc")
     if not os.path.exists(outdir):
         os.makedirs(outdir)
-    fname = os.path.splitext(os.path.basename(infile))[0].split('_')[1] + suffix
+    fname = os.path.splitext(os.path.basename(infile))[0] + suffix
     outfile = os.path.join(outdir, fname)
     return outfile
     
