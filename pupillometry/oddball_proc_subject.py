@@ -68,9 +68,9 @@ def save_total_blink_pct(dfresamp, infile):
     """Calculate and save out percent of trials with blinks in session"""
     outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
     blink_dict = {}
-    blink_dict['BlinkPct'] = dfresamp.BlinksLR.mean()
-    blink_dict['Subject'] = dfresamp.loc[dfresamp.index[0], 'Subject']
-    blink_dict['Session'] = dfresamp.loc[dfresamp.index[0], 'Session']
+    blink_dict['BlinkPct'] = float(dfresamp.BlinksLR.mean())
+    blink_dict['Subject'] = str(dfresamp.loc[dfresamp.index[0], 'Subject'])
+    blink_dict['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
     blink_json = json.dumps(blink_dict)
     with open(outfile, 'w') as f:
         f.write(blink_json)
