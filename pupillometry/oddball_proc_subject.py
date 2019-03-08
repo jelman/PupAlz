@@ -52,7 +52,7 @@ def split_df(dfresamp):
     sessdf_cols = ['Subject','Session','Condition','TrialId', 'Timestamp',
                    'ACC','RT']
     sessdf = dfresamp.reset_index().groupby('TrialId')[sessdf_cols].first()
-    newcols = ['TrialMean','TrialMax','TrialSD']
+    newcols = ['DilationMean','DilationMax','DilationSD','ConstrictionMax']
     
     sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
     max_samples = dfresamp.reset_index().groupby('TrialId').size().max()
@@ -67,7 +67,6 @@ def split_df(dfresamp):
 def save_total_blink_pct(dfresamp, infile):
     """Calculate and save out percent of trials with blinks in session"""
     outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
-
     blink_dict = {}
     blink_dict['BlinkPct'] = dfresamp.BlinksLR.mean()
     blink_dict['Subject'] = dfresamp.loc[dfresamp.index[0], 'Subject']
@@ -110,9 +109,10 @@ def proc_all_trials(sessdf, pupil_dils, targdf, standdf):
             continue
         onset = trial_series.Timestamp
         trial_dils = get_trial_dils(pupil_dils, onset)
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'TrialMean'] = trial_dils.mean()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'TrialMax'] = trial_dils.max()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'TrialSD'] = trial_dils.std()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMax'] = trial_dils.max()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMean'] = trial_dils.mean()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationSD'] = trial_dils.std()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'ConstrictionMax'] = trial_dils.min()
         if trial_series.Condition=='Standard':
             standdf[trial_series.TrialId] = np.nan
             standdf.loc[standdf.index[:len(trial_dils)], trial_series.TrialId] = trial_dils.values
