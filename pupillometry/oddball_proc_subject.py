@@ -224,8 +224,8 @@ def proc_subject(filelist):
                              sessdf.loc[sessdf.Condition=='Target', 'Timestamp'],
                              sessdf.loc[sessdf.Condition=='Standard', 'Timestamp'],
                              dfresamp.BlinksLR)
-        glm_results['Session'] = dfresamp.loc[dfresamp.index[0], 'Session']
-        glm_results['Subject'] = dfresamp.loc[dfresamp.index[0], 'Subject']
+        glm_results['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
+        glm_results['Subject'] = str(dfresamp.loc[dfresamp.index[0], 'Subject'])
         save_glm_results(glm_results, fname)
         allconddf = standdf_long.append(targdf_long).reset_index(drop=True)
         allconddf['Subject'] = sessdf.Subject.iat[0]
