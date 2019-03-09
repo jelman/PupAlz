@@ -53,7 +53,6 @@ def split_df(dfresamp):
                    'ACC','RT']
     sessdf = dfresamp.reset_index().groupby('TrialId')[sessdf_cols].first()
     newcols = ['DilationMean','DilationMax','DilationSD','ConstrictionMax']
-    
     sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
     max_samples = dfresamp.reset_index().groupby('TrialId').size().max()
     trialidx = [x*.033 for x in range(max_samples)]
@@ -86,29 +85,46 @@ def get_blink_pct(dfresamp, infile=None):
     return trial_blinkpct
 
 
-def get_trial_dils(pupil_dils, onset, tpre=.5, tpost=2.5):
+def get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate):
     """Given pupil dilations for entire session and an onset, returns a 
     normalized timecourse for the trial. Calculates a baseline to subtract from
     trial data."""
-    pre_event = onset - pd.to_timedelta(tpre, unit='s')
-    post_event = onset + pd.to_timedelta(tpost, unit='s')    
-    baseline = pupil_dils[pre_event:onset].mean()
+    onset_idx = int(pupil_dils.index.get_loc(onset))
+    pre_idx = int(onset_idx - (tpre/(1/samp_rate)))
+    post_idx = int(onset_idx + (tpost/(1/samp_rate)) + 1)
+    baseline = pupil_dils.iloc[pre_idx:onset_idx].mean()
 #    baseline = pupil_dils[onset]
     #trial_dils = pupil_dils[onset:post_event] - baseline
-    trial_dils = pupil_dils[pre_event:post_event] - baseline
+    trial_dils = pupil_dils.iloc[pre_idx:post_idx] - baseline
     return trial_dils
 
 
-def proc_all_trials(sessdf, pupil_dils, targdf, standdf):
+def initiate_condition_df(tpre, tpost, samp_rate):
+    """Initiate dataframe to hold trial data for target and condition trials. 
+    Index will represent time relative to trial start with interval based on 
+    sampling rate."""
+    postidx = np.arange(0, tpost + .0001, 1/samp_rate)
+    preidx = np.arange(0, -1*(tpre + 0.0001), -1/samp_rate)
+    trialidx = np.sort(np.unique(np.append(postidx, preidx)))
+    targdf = pd.DataFrame(index=trialidx)
+    targdf['Condition'] = 'Target'
+    standdf = pd.DataFrame(index=trialidx)
+    standdf['Condition'] = 'Standard'
+    return targdf, standdf
+    
+    
+    
+def proc_all_trials(sessdf, pupil_dils, targdf, standdf, tpre=.5, tpost=2.5, samp_rate=30.):
     """FOr each trial, calculates the pupil dilation timecourse and saves to 
     appropriate dataframe depending on trial condition (target or standard).
     Saves summary metric of max dilation and standard deviation of dilation 
     to session level dataframe."""
+    targdf, standdf = initiate_condition_df(tpre, tpost, samp_rate)
     for trial_series in sessdf.itertuples():
         if (trial_series.TrialId==1) | (trial_series.BlinkPct>0.33):
             continue
         onset = trial_series.Timestamp
-        trial_dils = get_trial_dils(pupil_dils, onset)
+        trial_dils = get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate)
         sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMax'] = trial_dils.max()
         sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMean'] = trial_dils.mean()
         sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationSD'] = trial_dils.std()
@@ -207,6 +223,9 @@ def proc_subject(filelist):
         2. Dataframe of average peristumulus timecourse for each condition
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
+    tpre = 0.5
+    tpost = 2.5
+    samp_rate = 30.
     for fname in filelist:
         df = pd.read_csv(fname, sep="\t")
         df = pupil_utils.deblink(df)
@@ -217,7 +236,8 @@ def proc_subject(filelist):
         sessdf['BlinkPct'] = get_blink_pct(dfresamp, fname)
         dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
         sessdf, targdf, standdf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
-                                                  targdf, standdf)
+                                                  targdf, standdf,
+                                                  tpre, tpost, samp_rate)
         targdf_long = reshape_df(targdf)
         standdf_long = reshape_df(standdf)
         glm_results = ts_glm(dfresamp.zDiameterPupilLRFilt, 
@@ -230,7 +250,7 @@ def proc_subject(filelist):
         allconddf = standdf_long.append(targdf_long).reset_index(drop=True)
         allconddf['Subject'] = sessdf.Subject.iat[0]
         allconddf['Session'] = sessdf.Session.iat[0]    
-        plot_pstc(allconddf, fname, trial_start=.5)
+        plot_pstc(allconddf, fname)
         save_pstc(allconddf, fname)
         sessout = pupil_utils.get_outfile(fname, '_SessionData.csv')    
         sessdf.to_csv(sessout, index=False)
