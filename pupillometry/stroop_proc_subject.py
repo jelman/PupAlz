@@ -81,7 +81,7 @@ def get_blink_pct(dfresamp, infile=None):
     of samples with blinks within each trial for filtering out bad trials."""
     if infile:
         save_total_blink_pct(dfresamp, infile)
-    trial_blinkpct = dfresamp.groupby(['TrialId','CurrentObject'])['BlinksLR'].mean()
+    trial_blinkpct = dfresamp.groupby(['TrialId'])['BlinksLR'].mean()
     return trial_blinkpct
 
 
@@ -115,12 +115,18 @@ def initiate_condition_df(tpre, tpost, samp_rate):
     return condf, incondf, neutraldf
 
 
-def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
-    """FOr each trial, calculates the pupil dilation timecourse and saves to 
+def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30., noRT_subs=None):
+    """For each trial, calculates the pupil dilation timecourse and saves to 
     appropriate dataframe depending on trial condition.
     Saves summary metric of max dilation and standard deviation of dilation 
     to session level dataframe."""
     condf, incondf, neutraldf = initiate_condition_df(tpre, tpost, samp_rate)
+    # Filter trials for subjects with RT data
+    if sessdf.Subject.iat[0] not in noRT_subs:
+        # Filter out trials that are too short
+        sessdf = sessdf.loc[sessdf.RT>=250]
+        # Filter out trials that are too long (more than 3 SDs above the mean)
+        sessdf = sessdf.loc[sessdf.RT < sessdf.RT.mean() + (3*sessdf.RT.std())]
     for trial_number in sessdf.TrialId.unique():
         trial_series = sessdf.loc[sessdf.TrialId==trial_number]
         if trial_series.loc[(slice(None),'Stimulus'),'BlinkPct'].values>0.33:
@@ -253,6 +259,7 @@ def proc_subject(pupil_fname, eprime_fname):
     tpre = 0.5
     tpost = 2.5
     samp_rate = 30.
+    noRT_subs = [102, 103, 104, 105, 107]
     df = pupil_utils.deblink(df)
     df.CurrentObject.replace('StimulusRecord','Stimulus',inplace=True)
     dfresamp = pupil_utils.resamp_filt_data(df, filt_type='band', string_cols=['TrialId','CurrentObject'])
@@ -266,7 +273,7 @@ def proc_subject(pupil_fname, eprime_fname):
     sessdf['BlinkPct'] = get_blink_pct(dfresamp, pupil_fname)
     dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
     sessdf, condf, incondf, neutraldf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
-                                                  tpre, tpost, samp_rate)
+                                                  tpre, tpost, samp_rate, noRT_subs)
     condf_long = reshape_df(condf)
     incondf_long = reshape_df(incondf)
     neutraldf_long = reshape_df(neutraldf)
@@ -322,7 +329,6 @@ if __name__ == '__main__':
 
 """
 TODO:
-    Add previous trial condition to sessdf
     Create regressor for previous trial condition in glm
     
 """
