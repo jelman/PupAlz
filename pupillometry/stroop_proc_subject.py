@@ -85,17 +85,17 @@ def get_blink_pct(dfresamp, infile=None):
     return trial_blinkpct
 
 
-def get_trial_dils(pupil_dils, fix_onset, stim_onset, tpre=-.5,tpost=3.0):
+def get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate):
     """Given pupil dilations for entire session and an onset, returns a 
     normalized timecourse for the trial. Calculates a baseline to subtract from
     trial data."""
-    post_event = stim_onset + pd.to_timedelta(tpost, unit='s')   
-    pre_event = stim_onset + pd.to_timedelta(tpre, unit='s')
-    #baseline = pupil_dils[fix_onset:stim_onset].mean()
-    baseline = pupil_dils[pre_event:stim_onset].mean()
-    #baseline = pupil_dils[fix_onset]
-    trial_dils = pupil_dils[stim_onset:post_event] - baseline
-    #trial_dils = pupil_dils[fix_onset:post_event]
+    onset_idx = int(pupil_dils.index.get_loc(onset))
+    pre_idx = int(onset_idx - (tpre/(1/samp_rate)))
+    post_idx = int(onset_idx + (tpost/(1/samp_rate)) + 1)
+    baseline = pupil_dils.iloc[pre_idx:onset_idx].mean()
+#    baseline = pupil_dils[onset]
+    #trial_dils = pupil_dils[onset:post_event] - baseline
+    trial_dils = pupil_dils.iloc[pre_idx:post_idx] - baseline
     return trial_dils
 
 
@@ -126,7 +126,7 @@ def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
         if trial_series.loc[(slice(None),'Stimulus'),'BlinkPct'].values>0.33:
             continue
         fix_onset, stim_onset = trial_series.Timestamp
-        trial_dils = get_trial_dils(pupil_dils, fix_onset, stim_onset, tpost=3.)
+        trial_dils = get_trial_dils(pupil_dils, stim_onset, tpre, tpost, samp_rate)
         sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMax'] = trial_dils.max()
         sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMean'] = trial_dils.mean()
         sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationSD'] = trial_dils.std()
@@ -224,10 +224,8 @@ def save_glm_results(glm_results, infile):
         
 def plot_pstc(allconddf, infile, trial_start=0.):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
-    outfile = pupil_utils.get_outfile(infile, '_PSTCplotStimBaseline.png')
+    outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
     p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief")
-    kernel = pupil_utils.pupil_irf(allconddf.Timepoint.unique(), s1=1000., tmax=1.30)
-    plt.plot(allconddf.Timepoint.unique(), kernel, color='dimgrey', linestyle='--')
     plt.axvline(trial_start, color='k', linestyle='--')
     p.figure.savefig(outfile)  
     plt.close()
@@ -251,7 +249,7 @@ def proc_subject(pupil_fname, eprime_fname):
     elif os.path.splitext(pupil_fname)[-1] == ".xlsx":
         df = pd.read_excel(pupil_fname)
     else: 
-        raise IOError, 'Could not open {}'.format(pupil_fname)
+        raise IOError('Could not open {}'.format(pupil_fname))
     tpre = 0.5
     tpost = 2.5
     samp_rate = 30.
@@ -284,7 +282,7 @@ def proc_subject(pupil_fname, eprime_fname):
     allconddf['Subject'] = sessdf.Subject.iat[0]
     allconddf['Session'] = sessdf.Session.iat[0]    
     allconddf = allconddf[allconddf.Timepoint<3.0]
-    plot_pstc(allconddf, pupil_fname, trial_start=.0)
+    plot_pstc(allconddf, pupil_fname)
     save_pstc(allconddf, pupil_fname)
     sessout = pupil_utils.get_outfile(pupil_fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)
