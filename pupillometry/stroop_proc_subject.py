@@ -325,9 +325,3 @@ if __name__ == '__main__':
         eprime_fname = os.path.abspath(sys.argv[2])
         proc_subject(pupil_fname, eprime_fname)
 
-
-"""
-TODO:
-    Create regressor for previous trial condition in glm
-    
-"""

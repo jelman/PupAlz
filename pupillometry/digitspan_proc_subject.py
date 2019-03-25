@@ -101,8 +101,13 @@ def proc_subject(filelist):
         2. Dataframe of average peristumulus timecourse for each condition
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
-    for fname in filelist:
-        df = pd.read_csv(fname, sep="\t")
+    for fname in filelist: 
+        if os.path.splitext(fname)[-1] == ".gazedata":
+            df = pd.read_csv(fname, sep="\t")
+        elif os.path.splitext(fname)[-1] == ".xlsx":
+            df = pd.read_excel(fname)
+        else: 
+            raise IOError('Could not open {}'.format(fname))    
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
         dfresamp = dfresamp.reset_index(level='Timestamp').set_index(['Load','Trial'])

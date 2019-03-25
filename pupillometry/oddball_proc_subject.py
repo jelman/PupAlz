@@ -218,7 +218,12 @@ def proc_subject(filelist):
     tpost = 2.5
     samp_rate = 30.
     for fname in filelist:
-        df = pd.read_csv(fname, sep="\t")
+        if os.path.splitext(fname)[-1] == ".gazedata":
+            df = pd.read_csv(fname, sep="\t")
+        elif os.path.splitext(fname)[-1] == ".xlsx":
+            df = pd.read_excel(fname)
+        else: 
+            raise IOError('Could not open {}'.format(fname))   
         df = pupil_utils.deblink(df)
         dfresamp = pupil_utils.resamp_filt_data(df)
         dfresamp['Condition'] = np.where(dfresamp.CRESP==5, 'Standard', 'Target')
