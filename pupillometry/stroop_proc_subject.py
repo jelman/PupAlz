@@ -57,7 +57,7 @@ def split_df(dfresamp, eprime):
     eprimesub = eprime[eprimecols]
     eprimesub.columns = ['TrialId','Condition','RT']
     sessdf = sessdf.join(eprimesub.set_index('TrialId'))    
-    newcols = ['TrialMean','TrialMax','TrialSD']    
+    newcols = ['DilationMean','DilationMax','DilationSD','ConstrictionMax']
     sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
     #max_samples = dfresamp.reset_index().groupby(['TrialId','CurrentObject']).size().max()
     max_samples = dfresamp.reset_index().groupby('TrialId').size().max()
@@ -108,20 +108,38 @@ def get_trial_dils(pupil_dils, fix_onset, stim_onset, tpre=-.5,tpost=3.0):
     return trial_dils
 
 
+def initiate_condition_df(tpre, tpost, samp_rate):
+    """Initiate dataframe to hold trial data for target and condition trials. 
+    Index will represent time relative to trial start with interval based on 
+    sampling rate."""
+    postidx = np.arange(0, tpost + .0001, 1/samp_rate)
+    preidx = np.arange(0, -1*(tpre + 0.0001), -1/samp_rate)
+    trialidx = np.sort(np.unique(np.append(postidx, preidx)))
+    condf = pd.DataFrame(index=trialidx)
+    condf['Condition'] = 'Congruent'
+    incondf = pd.DataFrame(index=trialidx)
+    incondf['Condition'] = 'Incongruent'
+    neutraldf = pd.DataFrame(index=trialidx)
+    neutraldf['Condition'] = 'Neutral'
+    return condf, incondf, neutraldf
+
+
 def proc_all_trials(sessdf, pupil_dils, condf, incondf, neutraldf):
     """FOr each trial, calculates the pupil dilation timecourse and saves to 
     appropriate dataframe depending on trial condition (target or standard).
     Saves summary metric of max dilation and standard deviation of dilation 
     to session level dataframe."""
+    condf, incondf, neutraldf = initiate_condition_df(tpre, tpost, samp_rate)
     for trial_number in sessdf.TrialId.unique():
         trial_series = sessdf.loc[sessdf.TrialId==trial_number]
         if trial_series.loc[(slice(None),'Stimulus'),'BlinkPct'].values>0.33:
             continue
         fix_onset, stim_onset = trial_series.Timestamp
         trial_dils = get_trial_dils(pupil_dils, fix_onset, stim_onset, tpost=3.)
-        sessdf.loc[sessdf.TrialId==trial_number,'TrialMean'] = trial_dils.mean()
-        sessdf.loc[sessdf.TrialId==trial_number,'TrialMax'] = trial_dils.max()
-        sessdf.loc[sessdf.TrialId==trial_number,'TrialSD'] = trial_dils.std()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMax'] = trial_dils.max()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMean'] = trial_dils.mean()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationSD'] = trial_dils.std()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'ConstrictionMax'] = trial_dils.min()
         if (trial_series.Condition=='C').all():
             condf[trial_number] = np.nan
             condf.loc[condf.index[:len(trial_dils)], trial_number] = trial_dils.values
@@ -243,6 +261,9 @@ def proc_subject(pupil_fname, eprime_fname):
         df = pd.read_excel(pupil_fname)
     else: 
         raise IOError, 'Could not open {}'.format(pupil_fname)
+    tpre = 0.5
+    tpost = 2.5
+    samp_rate = 30.
     df = pupil_utils.deblink(df)
     df.CurrentObject.replace('StimulusRecord','Stimulus',inplace=True)
     dfresamp = pupil_utils.resamp_filt_data(df, filt_type='band', string_cols=['TrialId','CurrentObject'])
