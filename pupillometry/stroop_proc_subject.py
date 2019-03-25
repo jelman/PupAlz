@@ -48,15 +48,15 @@ def get_sessdf(dfresamp, eprime):
         1. Session level df with trial info
         2. Pupil data for all samples in target trials
         3. Pupil data for all samples in standard trials"""
-    sessdf_cols = ['Subject','Session','TrialId', 'Timestamp','CurrentObject']
-    sessdf = dfresamp.reset_index().groupby(['TrialId','CurrentObject'])[sessdf_cols].first()
-    sessidx = (sessdf.index.get_level_values("CurrentObject")=='Fixation') | (sessdf.index.get_level_values("CurrentObject")=='Stimulus')
-    sessdf = sessdf.loc[sessidx]
-    assert (sessdf.shape[0] == 2*eprime.shape[0]), "Number of trials in pupil data and eprime data do not match!"
+    dfresamp = dfresamp.loc[dfresamp['CurrentObject']=="Stimulus"]
+    sessdf_cols = ['Subject','Session','TrialId', 'Timestamp']
+    sessdf = dfresamp.reset_index().groupby(['TrialId'])[sessdf_cols].first()
+    assert (sessdf.shape[0] == eprime.shape[0]), "Number of trials in pupil data and eprime data do not match!"
     eprimecols = ['TrialList.Sample','Condition'] + [i for i in eprime.columns if re.search(r'Stimulus.*RT$', i)]
     eprimesub = eprime[eprimecols]
     eprimesub.columns = ['TrialId','Condition','RT']
     sessdf = sessdf.join(eprimesub.set_index('TrialId'))    
+    sessdf['PrevCondition'] = sessdf['Condition'].shift()
     newcols = ['DilationMean','DilationMax','DilationSD','ConstrictionMax']
     sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
     return sessdf
@@ -257,7 +257,9 @@ def proc_subject(pupil_fname, eprime_fname):
     df.CurrentObject.replace('StimulusRecord','Stimulus',inplace=True)
     dfresamp = pupil_utils.resamp_filt_data(df, filt_type='band', string_cols=['TrialId','CurrentObject'])
     dfresamp = dfresamp.drop(columns='TrialId_x').rename(columns={'TrialId_y':'TrialId'})
-    eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=1)
+    eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=0)
+    if np.all(eprime.columns[:3] != ['ExperimentName', 'Subject', 'Session']):
+        eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=1)
     eprime = eprime.rename(columns={"Congruency":"Condition"})
     pupil_utils.plot_qc(dfresamp, pupil_fname)
     sessdf = get_sessdf(dfresamp, eprime)
@@ -274,8 +276,8 @@ def proc_subject(pupil_fname, eprime_fname):
                          sessdf.loc[sessdf.Condition=='I', 'Timestamp'],
                          sessdf.loc[sessdf.Condition=='N', 'Timestamp'],
                          dfresamp.BlinksLR)
-        glm_results['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
-        glm_results['Subject'] = str(dfresamp.loc[dfresamp.index[0], 'Subject'])
+    glm_results['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
+    glm_results['Subject'] = str(dfresamp.loc[dfresamp.index[0], 'Subject'])
     save_glm_results(glm_results, pupil_fname)
     allconddf = condf_long.append(incondf_long).reset_index(drop=True)
     allconddf = allconddf.append(neutraldf_long).reset_index(drop=True)
