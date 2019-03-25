@@ -193,9 +193,9 @@ def ts_glm(pupilts, con_onsets, incon_onsets, neut_onsets, blinks, sampling_rate
         Incon-Con:   [0,1,-1,0,0]
     """
     signal_filt = ts.TimeSeries(pupilts, sampling_rate=sampling_rate)
-    con_ts = get_event_ts(pupilts, con_onsets.xs('Stimulus', level=1))    
-    incon_ts = get_event_ts(pupilts, incon_onsets.xs('Stimulus', level=1))
-    neut_ts = get_event_ts(pupilts, neut_onsets.xs('Stimulus', level=1))    
+    con_ts = get_event_ts(pupilts, con_onsets)    
+    incon_ts = get_event_ts(pupilts, incon_onsets)
+    neut_ts = get_event_ts(pupilts, neut_onsets)    
     kernel_end_sec = 3.
     kernel_length = kernel_end_sec / (1/sampling_rate)
     kernel_x = np.linspace(0, kernel_end_sec, int(kernel_length)) 
@@ -257,7 +257,7 @@ def proc_subject(pupil_fname, eprime_fname):
     else: 
         raise IOError('Could not open {}'.format(pupil_fname))
     tpre = 0.5
-    tpost = 2.5
+    tpost = 3
     samp_rate = 30.
     noRT_subs = [102, 103, 104, 105, 107]
     df = pupil_utils.deblink(df)
@@ -277,7 +277,6 @@ def proc_subject(pupil_fname, eprime_fname):
     condf_long = reshape_df(condf)
     incondf_long = reshape_df(incondf)
     neutraldf_long = reshape_df(neutraldf)
-
     glm_results = ts_glm(dfresamp.zDiameterPupilLRFilt, 
                          sessdf.loc[sessdf.Condition=='C', 'Timestamp'],
                          sessdf.loc[sessdf.Condition=='I', 'Timestamp'],
