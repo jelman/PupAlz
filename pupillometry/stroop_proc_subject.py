@@ -43,7 +43,7 @@ except ImportError:
     from tkinter import filedialog
     
     
-def split_df(dfresamp, eprime):
+def get_sessdf(dfresamp, eprime):
     """Create separate dataframes:
         1. Session level df with trial info
         2. Pupil data for all samples in target trials
@@ -59,16 +59,7 @@ def split_df(dfresamp, eprime):
     sessdf = sessdf.join(eprimesub.set_index('TrialId'))    
     newcols = ['DilationMean','DilationMax','DilationSD','ConstrictionMax']
     sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
-    #max_samples = dfresamp.reset_index().groupby(['TrialId','CurrentObject']).size().max()
-    max_samples = dfresamp.reset_index().groupby('TrialId').size().max()
-    trialidx = [x*.033 for x in range(max_samples)]
-    condf = pd.DataFrame(index=trialidx)
-    condf['Condition'] = 'Congruent'
-    incondf = pd.DataFrame(index=trialidx)
-    incondf['Condition'] = 'Incongruent'
-    neutraldf = pd.DataFrame(index=trialidx)
-    neutraldf['Condition'] = 'Neutral'
-    return sessdf, condf, incondf, neutraldf
+    return sessdf
     
 
 def save_total_blink_pct(dfresamp, infile):
@@ -124,9 +115,9 @@ def initiate_condition_df(tpre, tpost, samp_rate):
     return condf, incondf, neutraldf
 
 
-def proc_all_trials(sessdf, pupil_dils, condf, incondf, neutraldf):
+def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
     """FOr each trial, calculates the pupil dilation timecourse and saves to 
-    appropriate dataframe depending on trial condition (target or standard).
+    appropriate dataframe depending on trial condition.
     Saves summary metric of max dilation and standard deviation of dilation 
     to session level dataframe."""
     condf, incondf, neutraldf = initiate_condition_df(tpre, tpost, samp_rate)
@@ -271,12 +262,11 @@ def proc_subject(pupil_fname, eprime_fname):
     eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=1)
     eprime = eprime.rename(columns={"Congruency":"Condition"})
     pupil_utils.plot_qc(dfresamp, pupil_fname)
-    sessdf, condf, incondf, neutraldf = split_df(dfresamp, eprime)
+    sessdf = get_sessdf(dfresamp, eprime)
     sessdf['BlinkPct'] = get_blink_pct(dfresamp, pupil_fname)
     dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
-    sessdf, condf, incondf, neutraldf = proc_all_trials(sessdf, 
-                                                        dfresamp['zDiameterPupilLRFilt'],
-                                                        condf, incondf, neutraldf)
+    sessdf, condf, incondf, neutraldf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
+                                                  tpre, tpost, samp_rate)
     condf_long = reshape_df(condf)
     incondf_long = reshape_df(incondf)
     neutraldf_long = reshape_df(neutraldf)
