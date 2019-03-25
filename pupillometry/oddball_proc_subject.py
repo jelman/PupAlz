@@ -44,23 +44,14 @@ except ImportError:
 
 
 
-def split_df(dfresamp):
-    """Create separate dataframes:
-        1. Session level df with trial info
-        2. Pupil data for all samples in target trials
-        3. Pupil data for all samples in standard trials"""
+def get_sessdf(dfresamp):
+    """Create dataframe of session level trial info"""
     sessdf_cols = ['Subject','Session','Condition','TrialId', 'Timestamp',
                    'ACC','RT']
     sessdf = dfresamp.reset_index().groupby('TrialId')[sessdf_cols].first()
     newcols = ['DilationMean','DilationMax','DilationSD','ConstrictionMax']
     sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
-    max_samples = dfresamp.reset_index().groupby('TrialId').size().max()
-    trialidx = [x*.033 for x in range(max_samples)]
-    targdf = pd.DataFrame(index=trialidx)
-    targdf['Condition'] = 'Target'
-    standdf = pd.DataFrame(index=trialidx)
-    standdf['Condition'] = 'Standard'
-    return sessdf, targdf, standdf
+    return sessdf
     
 
 def save_total_blink_pct(dfresamp, infile):
@@ -114,7 +105,7 @@ def initiate_condition_df(tpre, tpost, samp_rate):
     
     
     
-def proc_all_trials(sessdf, pupil_dils, targdf, standdf, tpre=.5, tpost=2.5, samp_rate=30.):
+def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
     """FOr each trial, calculates the pupil dilation timecourse and saves to 
     appropriate dataframe depending on trial condition (target or standard).
     Saves summary metric of max dilation and standard deviation of dilation 
@@ -232,11 +223,10 @@ def proc_subject(filelist):
         dfresamp = pupil_utils.resamp_filt_data(df)
         dfresamp['Condition'] = np.where(dfresamp.CRESP==5, 'Standard', 'Target')
         pupil_utils.plot_qc(dfresamp, fname.replace("/raw/","/proc/"))
-        sessdf, targdf, standdf = split_df(dfresamp)
+        sessdf = get_sessdf(dfresamp)
         sessdf['BlinkPct'] = get_blink_pct(dfresamp, fname)
         dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
         sessdf, targdf, standdf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
-                                                  targdf, standdf,
                                                   tpre, tpost, samp_rate)
         targdf_long = reshape_df(targdf)
         standdf_long = reshape_df(standdf)
