@@ -84,18 +84,18 @@ def unstack_conditions(dflong):
 def calc_cnr(df):
     """
     Calculates multiple measures of CNR. Dataframe must have the following 
-    columns: Target_TrialMax, Standard_TrialMax, Target_TrialSD, Standard_TrialSD.
+    columns: Target_DilationMax, Standard_DilationMax, Target_DilationSD, Standard_DilationSD.
     DIFF: Target max - Standard max
     CNR1: Target max / Standard SD
     CNR2: (Target max - Standard max) / Standard SD
     CNR3: Target SD / Standard SD
     CNR4: (Target max - Standard max) / Standard max
     """
-    df['DIFF'] = df.Target_TrialMax - df.Standard_TrialMax
-    df['CNR1'] = df.Target_TrialMax / df.Standard_TrialSD
-    df['CNR2'] = (df.Target_TrialMax - df.Standard_TrialMax) / df.Standard_TrialSD
-    df['CNR3'] = df.Target_TrialSD / df.Standard_TrialSD
-    df['CNR4'] = (df.Target_TrialMax - df.Standard_TrialMax) / df.Standard_TrialMax
+    df['DIFF'] = df.Target_DilationMax - df.Standard_DilationMax
+    df['CNR1'] = df.Target_DilationMax / df.Standard_DilationSD
+    df['CNR2'] = (df.Target_DilationMax - df.Standard_DilationMax) / df.Standard_DilationSD
+    df['CNR3'] = df.Target_DilationSD / df.Standard_DilationSD
+    df['CNR4'] = (df.Target_DilationMax - df.Standard_DilationMax) / df.Standard_DilationMax
     return df
 
 
