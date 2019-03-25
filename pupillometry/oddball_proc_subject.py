@@ -112,14 +112,14 @@ def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
     to session level dataframe."""
     targdf, standdf = initiate_condition_df(tpre, tpost, samp_rate)
     for trial_series in sessdf.itertuples():
-        if (trial_series.TrialId==1) | (trial_series.BlinkPct>0.33):
+        if (trial_series.TrialId.iat[0]==1) | (trial_series.BlinkPct.iat[0]>0.33):
             continue
-        onset = trial_series.Timestamp
+        onset = trial_series.Timestamp.iat[0]
         trial_dils = get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate)
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMax'] = trial_dils.max()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMean'] = trial_dils.mean()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationSD'] = trial_dils.std()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'ConstrictionMax'] = trial_dils.min()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationMax'] = trial_dils.max()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationMean'] = trial_dils.mean()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationSD'] = trial_dils.std()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'ConstrictionMax'] = trial_dils.min()
         if trial_series.Condition=='Standard':
             standdf[trial_series.TrialId] = np.nan
             standdf.loc[standdf.index[:len(trial_dils)], trial_series.TrialId] = trial_dils.values

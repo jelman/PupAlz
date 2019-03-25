@@ -129,14 +129,14 @@ def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30., noRT_
         sessdf = sessdf.loc[sessdf.RT < sessdf.RT.mean() + (3*sessdf.RT.std())]
     for trial_number in sessdf.TrialId.unique():
         trial_series = sessdf.loc[sessdf.TrialId==trial_number]
-        if trial_series.loc[(slice(None),'Stimulus'),'BlinkPct'].values>0.33:
+        if trial_series['BlinkPct'].iat[0]>0.33:
             continue
-        fix_onset, stim_onset = trial_series.Timestamp
-        trial_dils = get_trial_dils(pupil_dils, stim_onset, tpre, tpost, samp_rate)
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMax'] = trial_dils.max()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMean'] = trial_dils.mean()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationSD'] = trial_dils.std()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'ConstrictionMax'] = trial_dils.min()
+        onset = trial_series.Timestamp.iat[0]
+        trial_dils = get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate)
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationMax'] = trial_dils.max()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationMean'] = trial_dils.mean()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationSD'] = trial_dils.std()
+        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'ConstrictionMax'] = trial_dils.min()
         if (trial_series.Condition=='C').all():
             condf[trial_number] = np.nan
             condf.loc[condf.index[:len(trial_dils)], trial_number] = trial_dils.values
