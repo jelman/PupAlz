@@ -223,14 +223,14 @@ def ts_glm(pupilts, con_onsets, incon_onsets, neut_onsets, blinks, sampling_rate
 def save_glm_results(glm_results, infile):
     """Calculate and save out percent of trials with blinks in session"""
     glm_json = json.dumps(glm_results)
-    outfile = pupil_utils.get_outfile(infile, '_GLMresults.json')
+    outfile = pupil_utils.get_proc_outfile(infile, '_GLMresults.json')
     with open(outfile, 'w') as f:
         f.write(glm_json)
         
         
 def plot_pstc(allconddf, infile, trial_start=0.):
     """Plot peri-stimulus timecourse across all trials and split by condition"""
-    outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
+    outfile = pupil_utils.get_proc_outfile(infile, '_PSTCplot.png')
     p = sns.lineplot(data=allconddf, x="Timepoint",y="Dilation", hue="Condition", legend="brief")
     plt.axvline(trial_start, color='k', linestyle='--')
     p.figure.savefig(outfile)  
@@ -239,7 +239,7 @@ def plot_pstc(allconddf, infile, trial_start=0.):
 
 def save_pstc(allconddf, infile):
     """Save out peristimulus timecourse plots"""
-    outfile = pupil_utils.get_outfile(infile, '_PSTCdata.csv')
+    outfile = pupil_utils.get_proc_outfile(infile, '_PSTCdata.csv')
     pstcdf = allconddf.groupby(['Subject','Condition','Timepoint']).mean().reset_index()
     pstcdf.to_csv(outfile, index=False)
     
@@ -250,7 +250,7 @@ def proc_subject(pupil_fname, eprime_fname):
         2. Dataframe of average peristumulus timecourse for each condition
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
-        if (os.path.splitext(fname)[-1] == ".gazedata") | (os.path.splitext(fname)[-1] == ".csv"):
+    if (os.path.splitext(fname)[-1] == ".gazedata") | (os.path.splitext(fname)[-1] == ".csv"):
         df = pd.read_csv(pupil_fname, sep="\t")
     elif os.path.splitext(pupil_fname)[-1] == ".xlsx":
         df = pd.read_excel(pupil_fname)
