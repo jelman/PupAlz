@@ -218,6 +218,7 @@ def proc_subject(filelist):
     tpost = 2.5
     samp_rate = 30.
     for fname in filelist:
+        print('Processing {}'.format(fname))
         if (os.path.splitext(fname)[-1] == ".gazedata") | (os.path.splitext(fname)[-1] == ".csv"):
             df = pd.read_csv(fname, sep="\t")
         elif os.path.splitext(fname)[-1] == ".xlsx":

@@ -106,6 +106,7 @@ def proc_subject(filelist):
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
     for fname in filelist:
+        print('Processing {}'.format(fname))
         if (os.path.splitext(fname)[-1] == ".gazedata") | (os.path.splitext(fname)[-1] == ".csv"):
             df = pd.read_csv(fname, sep="\t")
         elif os.path.splitext(fname)[-1] == ".xlsx":
