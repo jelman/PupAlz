@@ -112,14 +112,23 @@ def proc_subject(filelist):
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
         dfresamp = dfresamp.reset_index(level='Timestamp').set_index(['Load','Trial'])
-#        df_load_avg = dfresamp.groupby(['Load','Timestamp']).mean().reset_index()
-        pupildf = dfresamp.groupby(level=['Load','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean()).reset_index()
+        # Take average of each second
+        dfresamp1s = dfresamp.groupby(level=['Load','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean()).reset_index()
+        # Select and rename columns of interest
         pupilcols = ['Subject', 'Trial', 'Load', 'Timestamp', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
-        pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
+        dfresamp1s = dfresamp1s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                                  'BlinksLR':'BlinkPct'})
+        # Set samples with >50% blinks to missing    
+        dfresamp1s.loc[dfresamp1s.BlinkPct>.5, ['Dilation','Baseline','Diameter']] = np.nan
+        # Drop missing samples and average of trials within load
+        pupildf = dfresamp1s.dropna(subset=['Dilation']).groupby(['Load','Timestamp']).mean()
+        # Add number of non-missing trials that contributed to each sample average
+        pupildf['ntrials'] = dfresamp1s.dropna(subset=['Dilation']).groupby(['Load','Timestamp']).size()
+        pupildf = pupildf.reset_index()
         pupildf['Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
+        # Save out data and plots
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
 
