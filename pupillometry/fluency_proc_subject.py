@@ -60,7 +60,7 @@ def clean_trials(df, trialevents):
 #        rawtrial = rawtrial[rawtrial.Condition=='Response']
         cleantrial = pupil_utils.deblink(rawtrial)
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=['CurrentObject', 'Phase'])
-        baseline = trial_resamp['DiameterPupilLRFilt'].first('500ms').mean()
+        baseline = trial_resamp['DiameterPupilLRFilt'].first('2000ms').mean()
 #        baseline = trial_resamp.DiameterPupilLRFilt.iat[0]
         trial_resamp['Baseline'] = baseline
         trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
@@ -116,12 +116,14 @@ def proc_subject(filelist):
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(df, trialevents)
         dfresamp = dfresamp.reset_index(drop=False).set_index(['Condition','Trial'])
+        dfresamp['Timestamp'] = dfresamp.groupby(level='Trial')['Timestamp'].transform(lambda x: x - x.iat[0])
         dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1S', on='Timestamp', closed='right', label='right').mean())
         pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
-        pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by='Trial')
+        pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
         pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
+        pupildf['Timestamp'] = pd.to_datetime(pupildf.Timestamp).dt.strftime('%H:%M:%S')
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
