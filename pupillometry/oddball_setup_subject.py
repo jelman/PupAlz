@@ -58,7 +58,12 @@ def swap_response(df):
 
 
 def recode_gaze_data(fname, session):
-    df = pd.read_excel(fname)
+    if (os.path.splitext(fname)[-1] == ".gazedata") | (os.path.splitext(fname)[-1] == ".csv"):
+        df = pd.read_csv(fname, sep="\t")
+    elif os.path.splitext(fname)[-1] == ".xlsx":
+        df = pd.read_excel(fname)
+    else: 
+        raise IOError('Could not open {}'.format(fname))   
     df['Session'] = session
     df = swap_response(df)
     return df
@@ -83,14 +88,12 @@ def setup_subject(fname):
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('USAGE: {} <subject directory> '.format(os.path.basename(sys.argv[0])))
-        print('Sets up subject directory and recodes data. Takes subject directory as input.')
-        print('Directory name must be in the format of "<PupAlz ID>_<ADRC ID>".')
+        print('Sets up subject and recodes data. Takes pupil data filename as input.')
         print('Performs the following actions:')
         print('  1. Renames subject ID in the gazadata file')
         print('  2. Recodes session based on session number listed in gazedata filename')
         print('  3. Swaps correct response in gazedata file')
         print('  4. Saves out new .gazedata file with "recoded" suffix')
-        print('  5. Moves all files to "raw" directory')
     else:
         fname = sys.argv[1]
         setup_subject(fname)
