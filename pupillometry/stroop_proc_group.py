@@ -46,7 +46,8 @@ def get_blink_data(datadir):
     blink_filelist = glob_files(datadir, suffix='_BlinkPct.json')
     blink_list = []
     for sub_file in blink_filelist:
-        subdict = json.load(open(sub_file))
+        with open(sub_file, 'r') as f:
+            subdict = json.load(f)
         subdf = pd.DataFrame.from_records([subdict])
         blink_list.append(subdf)
     blinkdf = pd.concat(blink_list).reset_index(drop=True)
@@ -68,7 +69,8 @@ def get_glm_data(datadir):
     glm_filelist = glob_files(datadir, suffix='GLMresults.json')
     glm_list = []
     for sub_file in glm_filelist:
-        subdict = json.load(open(sub_file))
+        with open(sub_file, 'r') as f:
+            subdict = json.load(f)
         subdf = pd.DataFrame.from_records([subdict])
         glm_list.append(subdf)
     glmdf = pd.concat(glm_list).reset_index(drop=True)
