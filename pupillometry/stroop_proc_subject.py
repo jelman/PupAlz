@@ -64,7 +64,7 @@ def get_sessdf(dfresamp, eprime):
 
 def save_total_blink_pct(dfresamp, infile):
     """Calculate and save out percent of trials with blinks in session"""
-    outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
+    outfile = pupil_utils.get_proc_outfile(infile, '_BlinkPct.json')
 
     blink_dict = {}
     blink_dict['BlinkPct'] = float(dfresamp.BlinksLR.mean())
@@ -168,7 +168,7 @@ def get_event_ts(pupilts, events):
 def plot_event(signal_filt, con_ts, incon_ts, neut_ts, kernel, infile, plot_kernel=True):
     """Plot peri-stimulus timecourse of each event type as well as the 
     canonical pupil response function"""
-    outfile = pupil_utils.get_outfile(infile, '_PSTCplot.png')
+    outfile = pupil_utils.get_proc_outfile(infile, '_PSTCplot.png')
     plt.ioff()
     all_events = con_ts.data + (incon_ts.data*2) + (neut_ts.data*3)
     all_events_ts = ts.TimeSeries(all_events, sampling_rate=30., time_unit='s')
@@ -266,7 +266,7 @@ def proc_subject(pupil_fname, eprime_fname):
     dfresamp = pupil_utils.resamp_filt_data(df, filt_type='band', string_cols=['TrialId','CurrentObject'])
     dfresamp = dfresamp.drop(columns='TrialId_x').rename(columns={'TrialId_y':'TrialId'})
     eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=0)
-    if np.all(eprime.columns[:3] != ['ExperimentName', 'Subject', 'Session']):
+    if not np.array_equal(eprime.columns[:3], ['ExperimentName', 'Subject', 'Session']):
         eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=1)
     eprime = eprime.rename(columns={"Congruency":"Condition"})
     pupil_utils.plot_qc(dfresamp, pupil_fname)
@@ -293,7 +293,7 @@ def proc_subject(pupil_fname, eprime_fname):
     allconddf = allconddf[allconddf.Timepoint<3.0]
     plot_pstc(allconddf, pupil_fname)
     save_pstc(allconddf, pupil_fname)
-    sessout = pupil_utils.get_outfile(pupil_fname, '_SessionData.csv')    
+    sessout = pupil_utils.get_proc_outfile(pupil_fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)
 
     
