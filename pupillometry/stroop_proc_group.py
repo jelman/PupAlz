@@ -62,6 +62,7 @@ def get_pstc_data(datadir):
         pstc_list.append(subdf)
     pstcdf = pd.concat(pstc_list).reset_index(drop=True)
     pstcdf.Session = pstcdf.Session.astype(int)
+    pstcdf.Subject = pstcdf.Subject.astype('str')
     return pstcdf
 
 
@@ -98,6 +99,7 @@ def plot_group_pstc(pstcdf, outfile, trial_start=0.):
 def proc_group(datadir):
     sessdf = get_sess_data(datadir)
     sessdf_wide = unstack_conditions(sessdf)
+    sessdf_wide.Subject = sessdf_wide.Subject.astype('str')
     glm_df = get_glm_data(datadir)
     blink_df = get_blink_data(datadir)
     alldat = pd.merge(sessdf_wide, glm_df, on=['Subject','Session'])
