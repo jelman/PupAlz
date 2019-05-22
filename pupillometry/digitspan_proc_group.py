@@ -66,7 +66,7 @@ def proc_group(datadir):
                     kind="point", capsize=.2, aspect=1.5, 
                     data=sessdf_long)
     p.despine()
-    p.savefig(plot_outfile)
+    p.savefig(plot_outfile, dpi=300)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:

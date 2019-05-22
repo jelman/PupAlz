@@ -92,7 +92,7 @@ def plot_group_pstc(pstcdf, outfile, trial_start=0.):
     kernel = pupil_utils.pupil_irf(pstcdf.Timepoint.unique(), s1=1000., tmax=1.30)
     plt.plot(pstcdf.Timepoint.unique(), kernel, color='dimgrey', linestyle='--')
     plt.axvline(trial_start, color='k', linestyle='--')
-    p.figure.savefig(outfile)  
+    p.figure.savefig(outfile, dpi=300)  
     plt.close()    
     
     
