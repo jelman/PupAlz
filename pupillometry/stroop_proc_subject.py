@@ -4,11 +4,14 @@ Created on Fri Sep 16 12:00:45 2016
 
 @author: jelman
 
-This script takes Tobii .gazedata file from auditory oddball as input. It 
+This script takes Tobii .gazedata file from stroop task as input. It 
 first performs interpolation and filtering, Then peristimulus timecourses 
-are created for target and standard trials after baselining. Trial-level data 
-and average PSTC waveforms data are output for further group processing using 
-(i.e., with oddball_proc_group.py). 
+are created for incongruent, congruent, and neutral trials after baselining.
+Baseline is the mean dilation 250ms prior to stimulus onset. Three sets of 
+data are produced:
+    - Dilation measures for each individual trial
+    - Averaged timecourse for each condition
+    - Results from an fmri-style GLM with contrasts betwen conditions 
 
 Some procedures and parameters adapted from:
 Jackson, I. and Sirois, S. (2009), Infant cognition: going full factorial 

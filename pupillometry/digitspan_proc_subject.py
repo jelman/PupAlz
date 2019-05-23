@@ -5,10 +5,9 @@ Created on Fri Sep 16 12:00:45 2016
 @author: jelman
 
 This script takes Tobii .gazedata file from digit span as input. It 
-first performs interpolation and filtering, Then peristimulus timecourses 
-are created for target and standard trials after baselining. Trial-level data 
-and average PSTC waveforms data are output for further group processing using 
-(i.e., with oddball_proc_group.py). 
+first performs interpolation and filtering, Dilation at each second is calculated
+for each load after baselining. Baseline is the average dilation during the 
+"Ready" phase.
 
 Some procedures and parameters adapted from:
 Jackson, I. and Sirois, S. (2009), Infant cognition: going full factorial 
