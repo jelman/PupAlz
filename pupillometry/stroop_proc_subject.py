@@ -118,14 +118,16 @@ def initiate_condition_df(tpre, tpost, samp_rate):
     return condf, incondf, neutraldf
 
 
-def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30., noRT_subs=None):
+def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
     """For each trial, calculates the pupil dilation timecourse and saves to 
     appropriate dataframe depending on trial condition.
     Saves summary metric of max dilation and standard deviation of dilation 
     to session level dataframe."""
     condf, incondf, neutraldf = initiate_condition_df(tpre, tpost, samp_rate)
     # Filter trials for subjects with RT data
-    if sessdf.Subject.iat[0] not in noRT_subs:
+    # Some subjects have RT==0 for almost all trials, skip these subjects
+    # Threshold is arbitrarily set to 90% of trials with value of 0
+    if np.mean(sessdf.RT==0) < .9:
         # Filter out trials that are too short
         sessdf = sessdf.loc[sessdf.RT>=250]
         # Filter out trials that are too long (more than 3 SDs above the mean)
@@ -136,6 +138,14 @@ def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30., noRT_
             continue
         onset = trial_series.Timestamp.iat[0]
         trial_dils = get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate)
+        # Depending on sampling rate, trial_dils and condf may not be identical length
+        # If off by 1 sample, cut first sample (from tpre period) from trial_dils
+        if len(trial_dils)==len(condf)+1:
+            trial_dils = trial_dils[1:]
+        """
+        If trial_dils and conddf are different lengths, cut first sample of trial_dils
+        """
+        
         sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationMax'] = trial_dils.max()
         sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationMean'] = trial_dils.mean()
         sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationSD'] = trial_dils.std()
@@ -260,10 +270,9 @@ def proc_subject(pupil_fname, eprime_fname):
         df = pd.read_excel(pupil_fname)
     else: 
         raise IOError('Could not open {}'.format(pupil_fname))
-    tpre = 0.5
-    tpost = 3
+    tpre = 0.250
+    tpost = 2.5
     samp_rate = 30.
-    noRT_subs = [102, 103, 104, 105, 107]
     df = pupil_utils.deblink(df)
     df.CurrentObject.replace('StimulusRecord','Stimulus',inplace=True)
     dfresamp = pupil_utils.resamp_filt_data(df, filt_type='band', string_cols=['TrialId','CurrentObject'])
@@ -277,7 +286,7 @@ def proc_subject(pupil_fname, eprime_fname):
     sessdf['BlinkPct'] = get_blink_pct(dfresamp, pupil_fname)
     dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
     sessdf, condf, incondf, neutraldf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
-                                                  tpre, tpost, samp_rate, noRT_subs)
+                                                  tpre, tpost, samp_rate)
     condf_long = reshape_df(condf)
     incondf_long = reshape_df(incondf)
     neutraldf_long = reshape_df(neutraldf)
