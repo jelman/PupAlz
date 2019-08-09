@@ -21,7 +21,14 @@ import re
 import os, sys
 from glob import glob
 import numpy as np
-
+try:
+    # for Python2
+    import Tkinter as tkinter
+    import tkFileDialog as filedialog
+except ImportError:
+    # for Python3
+    import tkinter
+    from tkinter import filedialog
 
 def check_setup(rawdir):
     globstr = os.path.join(rawdir, '*recoded.gazedata')
@@ -61,7 +68,7 @@ def recode_gaze_data(fname, session):
     if (os.path.splitext(fname)[-1] == ".gazedata") | (os.path.splitext(fname)[-1] == ".csv"):
         df = pd.read_csv(fname, sep="\t")
     elif os.path.splitext(fname)[-1] == ".xlsx":
-        df = pd.read_excel(fname)
+        df = pd.read_excel(fname, parse_dates=False)
     else: 
         raise IOError('Could not open {}'.format(fname))   
     df['Session'] = session
@@ -75,14 +82,16 @@ def rename_gaze_file(procdir, subid, session):
     return newfile       
         
     
-def setup_subject(fname):
-    subid = get_subid(fname)
-    session = get_session(fname)
-    rawdir = os.path.dirname(fname)
-    procdir = rawdir.replace('/raw', '/proc')
-    df = recode_gaze_data(fname, session)
-    newfile = rename_gaze_file(procdir, subid, session)
-    df.to_csv(newfile, index=False, sep="\t")
+def setup_subject(filelist):
+    for fname in filelist:
+        print('Processing {}'.format(fname))
+        subid = get_subid(fname)
+        session = get_session(fname)
+        rawdir = os.path.dirname(fname)
+        procdir = rawdir.replace('/raw', '/proc')
+        df = recode_gaze_data(fname, session)
+        newfile = rename_gaze_file(procdir, subid, session)
+        df.to_csv(newfile, index=False, sep="\t")
 
 
 if __name__ == '__main__':
@@ -94,6 +103,17 @@ if __name__ == '__main__':
         print('  2. Recodes session based on session number listed in gazedata filename')
         print('  3. Swaps correct response in gazedata file')
         print('  4. Saves out new .gazedata file with "recoded" suffix')
+        
+        root = tkinter.Tk()
+        root.withdraw()
+        # Select files to process
+        filelist = filedialog.askopenfilenames(parent=root,
+                                                    title='Choose raw oddball pupil gazedata file to recode',
+                                                    filetypes = (("gazedata files","*.gazedata"),("all files","*.*")))
+        filelist = list(filelist)
+        # Run script
+        setup_subject(filelist)
+
     else:
-        fname = sys.argv[1]
-        setup_subject(fname)
+        filelist = [os.path.abspath(f) for f in sys.argv[1:]]
+        setup_subject(filelist)

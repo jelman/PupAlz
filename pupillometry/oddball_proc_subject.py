@@ -225,7 +225,7 @@ def proc_subject(filelist):
         if (os.path.splitext(fname)[-1] == ".gazedata") | (os.path.splitext(fname)[-1] == ".csv"):
             df = pd.read_csv(fname, sep="\t")
         elif os.path.splitext(fname)[-1] == ".xlsx":
-            df = pd.read_excel(fname)
+            df = pd.read_excel(fname, parse_dates=False)
         else: 
             raise IOError('Could not open {}'.format(fname))   
         df = pupil_utils.deblink(df)

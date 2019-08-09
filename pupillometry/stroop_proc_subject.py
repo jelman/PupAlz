@@ -267,7 +267,7 @@ def proc_subject(pupil_fname, eprime_fname):
     if (os.path.splitext(pupil_fname)[-1] == ".gazedata") | (os.path.splitext(pupil_fname)[-1] == ".csv"):
         df = pd.read_csv(pupil_fname, sep="\t")
     elif os.path.splitext(pupil_fname)[-1] == ".xlsx":
-        df = pd.read_excel(pupil_fname)
+        df = pd.read_excel(pupil_fname, parse_dates=False)
     else: 
         raise IOError('Could not open {}'.format(pupil_fname))
     tpre = 0.250
