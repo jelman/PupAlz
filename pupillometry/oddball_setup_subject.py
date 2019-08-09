@@ -87,7 +87,7 @@ def setup_subject(fname):
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print('USAGE: {} <subject directory> '.format(os.path.basename(sys.argv[0])))
+        print('USAGE: {} <raw gazedata file> '.format(os.path.basename(sys.argv[0])))
         print('Sets up subject and recodes data. Takes pupil data filename as input.')
         print('Performs the following actions:')
         print('  1. Renames subject ID in the gazadata file')
