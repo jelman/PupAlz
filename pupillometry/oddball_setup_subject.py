@@ -41,7 +41,7 @@ def check_setup(rawdir):
 
 
 def get_subid(fname):
-    subid = re.findall(r'Oddball-\d{3}\b', fname)[0].replace('Oddball-','')
+    subid = re.findall(r'Oddball-\d{3}(?:-\d{2})?', fname)[0].replace('Oddball-','')
     return subid
 
 
@@ -77,7 +77,7 @@ def recode_gaze_data(fname, session):
     
 
 def rename_gaze_file(procdir, subid, session):
-    new_fname = ''.join(['Oddball-', str(subid), '-', str(session), '_recoded.gazedata'])
+    new_fname = ''.join(['Oddball-', str(subid), '-Session', str(session), '_recoded.gazedata'])
     newfile = os.path.join(procdir, new_fname)
     return newfile       
         
