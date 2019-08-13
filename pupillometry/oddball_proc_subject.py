@@ -228,6 +228,7 @@ def proc_subject(filelist):
             df = pd.read_excel(fname, parse_dates=False)
         else: 
             raise IOError('Could not open {}'.format(fname))   
+        subid = pupil_utils.get_subid(df['Subject'])
         df = pupil_utils.deblink(df)
         dfresamp = pupil_utils.resamp_filt_data(df)
         dfresamp['Condition'] = np.where(dfresamp.CRESP==5, 'Standard', 'Target')
@@ -244,13 +245,14 @@ def proc_subject(filelist):
                              sessdf.loc[sessdf.Condition=='Standard', 'Timestamp'],
                              dfresamp.BlinksLR)
         glm_results['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
-        glm_results['Subject'] = str(dfresamp.loc[dfresamp.index[0], 'Subject'])
+        glm_results['Subject'] = subid
         save_glm_results(glm_results, fname)
         allconddf = standdf_long.append(targdf_long).reset_index(drop=True)
-        allconddf['Subject'] = sessdf.Subject.iat[0]
+        allconddf['Subject'] = subid
         allconddf['Session'] = sessdf.Session.iat[0]    
         plot_pstc(allconddf, fname)
         save_pstc(allconddf, fname)
+        sessdf['Subject'] = subid
         sessout = pupil_utils.get_outfile(fname, '_SessionData.csv')    
         sessdf.to_csv(sessout, index=False)
 

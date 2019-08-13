@@ -270,6 +270,7 @@ def proc_subject(pupil_fname, eprime_fname):
         df = pd.read_excel(pupil_fname, parse_dates=False)
     else: 
         raise IOError('Could not open {}'.format(pupil_fname))
+    subid = pupil_utils.get_subid(df['Subject'])
     tpre = 0.250
     tpost = 2.5
     samp_rate = 30.
@@ -296,15 +297,16 @@ def proc_subject(pupil_fname, eprime_fname):
                          sessdf.loc[sessdf.Condition=='N', 'Timestamp'],
                          dfresamp.BlinksLR)
     glm_results['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
-    glm_results['Subject'] = str(dfresamp.loc[dfresamp.index[0], 'Subject'])
+    glm_results['Subject'] = subid
     save_glm_results(glm_results, pupil_fname)
     allconddf = condf_long.append(incondf_long).reset_index(drop=True)
     allconddf = allconddf.append(neutraldf_long).reset_index(drop=True)
-    allconddf['Subject'] = sessdf.Subject.iat[0]
+    allconddf['Subject'] = subid
     allconddf['Session'] = sessdf.Session.iat[0]    
     allconddf = allconddf[allconddf.Timepoint<3.0]
     plot_pstc(allconddf, pupil_fname)
     save_pstc(allconddf, pupil_fname)
+    sessdf['Subject'] = subid
     sessout = pupil_utils.get_proc_outfile(pupil_fname, '_SessionData.csv')    
     sessdf.to_csv(sessout, index=False)
 

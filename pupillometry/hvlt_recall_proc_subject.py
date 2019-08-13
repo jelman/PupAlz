@@ -69,6 +69,7 @@ def proc_subject(filelist):
             df = pd.read_excel(fname)
         else: 
             raise IOError('Could not open {}'.format(fname))
+        subid = pupil_utils.get_subid(df['Subject'])
         df = df[df.CurrentObject.str.contains("Recall", na=False)]
         df = pupil_utils.deblink(df)
         dfresamp = clean_trials(df)
@@ -82,6 +83,8 @@ def proc_subject(filelist):
         pupilcols = ['Subject', 'Timestamp', 'Dilation',
                      'Baseline', 'Diameter', 'BlinkPct']
         pupildf = pupildf[pupilcols].sort_values(by='Timestamp')
+        # Set subject ID as (as type string)
+        pupildf['Subject'] = subid
         pupildf['Timestamp'] = pupildf.Timestamp.dt.total_seconds()
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupil_outname = pupil_outname.replace("-Recognition","")

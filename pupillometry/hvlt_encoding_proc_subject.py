@@ -101,6 +101,7 @@ def proc_subject(filelist):
             df = pd.read_excel(fname)
         else: 
             raise IOError('Could not open {}'.format(fname))   
+        subid = pupil_utils.get_subid(df['Subject'])
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
         dfresamp = dfresamp.reset_index(level='Trial', drop=True).reset_index()
@@ -108,6 +109,8 @@ def proc_subject(filelist):
         pupilcols = ['Subject', 'Trial', 'Timestamp', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf = pupildf[pupilcols]
+        # Set subject ID as (as type string)
+        pupildf['Subject'] = subid        
         pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
         pupildf.loc[:,'Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')

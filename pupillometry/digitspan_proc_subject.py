@@ -107,7 +107,8 @@ def proc_subject(filelist):
         elif os.path.splitext(fname)[-1] == ".xlsx":
             df = pd.read_excel(fname)
         else: 
-            raise IOError('Could not open {}'.format(fname))    
+            raise IOError('Could not open {}'.format(fname))  
+        subid = pupil_utils.get_subid(df['Subject'])
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
         dfresamp = dfresamp.reset_index(level='Timestamp').set_index(['Load','Trial'])
@@ -122,6 +123,8 @@ def proc_subject(filelist):
         dfresamp1s.loc[dfresamp1s.BlinkPct>.5, ['Dilation','Baseline','Diameter']] = np.nan
         # Drop missing samples and average of trials within load
         pupildf = dfresamp1s.dropna(subset=['Dilation']).groupby(['Load','Timestamp']).mean()
+        # Set subject ID as (as type string)
+        pupildf['Subject'] = subid
         # Add number of non-missing trials that contributed to each sample average
         pupildf['ntrials'] = dfresamp1s.dropna(subset=['Dilation']).groupby(['Load','Timestamp']).size()
         pupildf = pupildf.reset_index()
