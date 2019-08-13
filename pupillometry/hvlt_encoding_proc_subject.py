@@ -133,7 +133,7 @@ if __name__ == '__main__':
         root.withdraw()
         # Select files to process
         filelist = filedialog.askopenfilenames(parent=root,
-                                              title='Choose Digit Span pupil gazedata file to process',
+                                              title='Choose HVLT Encoding pupil gazedata file to process',
                                               filetypes = (("gazedata files","*.gazedata"),
                                                            ("all files","*.*")))
 
