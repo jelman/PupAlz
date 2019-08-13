@@ -10,7 +10,18 @@ from scipy.signal import fftconvolve
 from nistats.regression import ARModel, OLSModel
 
 
+def get_subid(sub_col):
+    """Given a column containing subject ID, checks to see that only one
+    ID is present. If one ID only is found, returns this ID. Otherwise raises 
+    an exception."""
+    unique_subid = sub_col.unique()
+    if len(unique_subid) == 1:
+        subid = str(sub_col.iat[0])
+        return subid
+    else:
+        raise Exception('Found multiple subject IDs in file: {}'.format(unique_subid))
 
+    
 def zscore(x):
     """ Z-score numpy array or pandas series """
     return (x - x.mean()) / x.std()
