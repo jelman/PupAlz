@@ -110,7 +110,7 @@ def proc_subject(filelist):
         if (os.path.splitext(fname)[-1] == ".gazedata") | (os.path.splitext(fname)[-1] == ".csv"):
             df = pd.read_csv(fname, sep="\t")
         elif os.path.splitext(fname)[-1] == ".xlsx":
-            df = pd.read_excel(fname)
+            df = pd.read_excel(fname, parse_dates=False)
         else: 
             raise IOError('Could not open {}'.format(fname))
         subid = pupil_utils.get_subid(df['Subject'])
@@ -118,7 +118,9 @@ def proc_subject(filelist):
         dfresamp = clean_trials(df, trialevents)
         dfresamp = dfresamp.reset_index(drop=False).set_index(['Condition','Trial'])
         dfresamp['Timestamp'] = dfresamp.groupby(level='Trial')['Timestamp'].transform(lambda x: x - x.iat[0])
-        dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1S', on='Timestamp', closed='right', label='right').mean())
+        dfresamp['Timestamp'] = pd.to_datetime(dfresamp.Timestamp)
+        ### Create data resampled to 1 second
+        dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean())
         pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
@@ -130,6 +132,19 @@ def proc_subject(filelist):
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
+        
+        #### Create data for 15 second blocks
+        dfresamp15s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('15s', on='Timestamp', closed='right', label='right').mean())
+        pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
+                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
+        pupildf15s = dfresamp15s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
+        pupildf15s = pupildf15s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
+                                         'BlinksLR':'BlinkPct'})
+        # Set subject ID as (as type string)
+        pupildf15s['Subject'] = subid
+        pupildf15s['Timestamp'] = pd.to_datetime(pupildf15s.Timestamp).dt.strftime('%H:%M:%S')
+        pupil15s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
+        pupildf15s.to_csv(pupil15s_outname, index=False)
 
 
 
@@ -141,7 +156,8 @@ if __name__ == '__main__':
         print('Processes single subject data from fluency task and outputs csv')
         print('files for use in further group analysis.')
         print('Takes eye tracker data text file (*.gazedata) as input.')
-        print('Removes artifacts, filters, and calculates dilation per 500ms.')
+        print('Removes artifacts, filters, and calculates dilation per 1s.')
+        print('Also creates averages over 15s blocks.')
         print('')
         root = tkinter.Tk()
         root.withdraw()
