@@ -129,6 +129,7 @@ def proc_subject(filelist):
         pupildf['ntrials'] = dfresamp1s.dropna(subset=['Dilation']).groupby(['Load','Timestamp']).size()
         pupildf = pupildf.reset_index()
         pupildf['Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
+        pupildf = pupildf[['Subject','Session','Trial','Load','Timestamp','Baseline','DiameterPupilLRFilt','BlinkPct','ntrials']]
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         # Save out data and plots
         pupildf.to_csv(pupil_outname, index=False)
