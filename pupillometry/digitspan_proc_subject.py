@@ -109,6 +109,7 @@ def proc_subject(filelist):
         else: 
             raise IOError('Could not open {}'.format(fname))  
         subid = pupil_utils.get_subid(df['Subject'])
+        timepoint = pupil_utils.get_timepoint(df['Session'], fname)
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
         dfresamp = dfresamp.reset_index(level='Timestamp').set_index(['Load','Trial'])
@@ -123,14 +124,16 @@ def proc_subject(filelist):
         dfresamp1s.loc[dfresamp1s.BlinkPct>.5, ['Dilation','Baseline','Diameter']] = np.nan
         # Drop missing samples and average of trials within load
         pupildf = dfresamp1s.dropna(subset=['Dilation']).groupby(['Load','Timestamp']).mean()
-        # Set subject ID as (as type string)
+        # Set subject ID and session as (as type string)
         pupildf['Subject'] = subid
+        pupildf['Session'] = timepoint
         # Add number of non-missing trials that contributed to each sample average
         pupildf['ntrials'] = dfresamp1s.dropna(subset=['Dilation']).groupby(['Load','Timestamp']).size()
         pupildf = pupildf.reset_index()
         pupildf['Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
-        pupildf = pupildf[['Subject','Session','Trial','Load','Timestamp','Baseline','DiameterPupilLRFilt','BlinkPct','ntrials']]
+        pupildf = pupildf[['Subject','Session','Load','Timestamp','Baseline','Diameter','Dilation','BlinkPct','ntrials']]
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
+        print('Writing processed data to {0}'.format(pupil_outname))
         # Save out data and plots
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
@@ -141,18 +144,15 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('')
         print('USAGE: {} <raw pupil file> '.format(os.path.basename(sys.argv[0])))
-        print('Processes single subject data from digit span task and outputs') 
-        print('csv files for use in further group analysis.')
-        print('Takes eye tracker data text file (*.gazedata) as input.')
-        print('Removes artifacts, filters, and calculates dilation per 1sec.')
-        print('')
+        print("""Processes single subject data from digit span task and outputs
+              csv files for use in further group analysis. Takes eye tracker 
+              data text file (*.gazedata) as input. Removes artifacts, filters, 
+              and calculates dilation per 1sec.""")
         root = tkinter.Tk()
         root.withdraw()
         # Select files to process
         filelist = filedialog.askopenfilenames(parent=root,
-                                              title='Choose Digit Span pupil gazedata file to process',
-                                              filetypes = (("gazedata files","*.gazedata"),
-                                                           ("all files","*.*")))
+                                              title='Choose Digit Span pupil gazedata file to process')
         filelist = list(filelist)
         
         # Run script

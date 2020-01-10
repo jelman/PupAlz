@@ -114,6 +114,7 @@ def proc_subject(filelist):
         else: 
             raise IOError('Could not open {}'.format(fname))
         subid = pupil_utils.get_subid(df['Subject'])
+        timepoint = pupil_utils.get_timepoint(df['Session'], fname)
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(df, trialevents)
         dfresamp = dfresamp.reset_index(drop=False).set_index(['Condition','Trial'])
@@ -126,10 +127,12 @@ def proc_subject(filelist):
         pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
         pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
-        # Set subject ID as (as type string)
+        # Set subject ID and session as (as type string)
         pupildf['Subject'] = subid
+        pupildf['Session'] = timepoint
         pupildf['Timestamp'] = pd.to_datetime(pupildf.Timestamp).dt.strftime('%H:%M:%S')
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
+        print('Writing processed data to {0}'.format(pupil_outname))
         pupildf.to_csv(pupil_outname, index=False)
         plot_trials(pupildf, fname)
         
@@ -144,6 +147,7 @@ def proc_subject(filelist):
         pupildf15s['Subject'] = subid
         pupildf15s['Timestamp'] = pd.to_datetime(pupildf15s.Timestamp).dt.strftime('%H:%M:%S')
         pupil15s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
+        'Writing quartile data to {0}'.format(pupil15s_outname)
         pupildf15s.to_csv(pupil15s_outname, index=False)
 
 
@@ -153,19 +157,16 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('')
         print('USAGE: {} <raw pupil file> '.format(os.path.basename(sys.argv[0])))
-        print('Processes single subject data from fluency task and outputs csv')
-        print('files for use in further group analysis.')
-        print('Takes eye tracker data text file (*.gazedata) as input.')
-        print('Removes artifacts, filters, and calculates dilation per 1s.')
-        print('Also creates averages over 15s blocks.')
+        print("""Processes single subject data from fluency task and outputs csv
+              files for use in further group analysis. Takes eye tracker data 
+              text file (*.gazedata) as input. Removes artifacts, filters, and 
+              calculates dilation per 1s.Also creates averages over 15s blocks.""")
         print('')
         root = tkinter.Tk()
         root.withdraw()
         # Select files to process
         filelist = filedialog.askopenfilenames(parent=root,
-                                              title='Choose Fluency pupil gazedata file to process',
-                                              filetypes = (("gazedata files","*.gazedata"),
-                                                           ("all files","*.*")))       
+                                              title='Choose Fluency pupil gazedata file to process')       
         filelist = list(filelist)
         # Run script
         proc_subject(filelist)

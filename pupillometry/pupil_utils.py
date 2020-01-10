@@ -1,5 +1,6 @@
 from __future__ import division, print_function, absolute_import
 import os
+import re
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,12 +17,37 @@ def get_subid(sub_col):
     an exception."""
     unique_subid = sub_col.unique()
     if len(unique_subid) == 1:
-        subid = str(sub_col.iat[0])
+        subid = str(unique_subid[0])
         return subid
     else:
         raise Exception('Found multiple subject IDs in file: {}'.format(unique_subid))
 
+def get_tpfolder(fname):
+    """Given a file path of input file, extract timepoint based on Timepoint folder."""
+    try:
+        tp = re.search(r'Timepoint (\d+)', fname, re.IGNORECASE).group(1)
+        return tp
+    except AttributeError:
+        print("Could not find valid timepoint folder in path of input file.")
+
     
+def get_timepoint(sess_col, fname):
+    """Given a column containing session ID, checks to see that only one
+    number is present and that it matches timepoint specified in path of input 
+    file. If both conditions are satisfied, returns this session number. Otherwise 
+    raises an exception."""
+    unique_sess = sess_col.unique()
+    if len(unique_sess) == 1:
+        sess = str(unique_sess[0])
+    else:
+        raise Exception('Found multiple subject IDs in file: {}'.format(unique_sess))
+    tp_folder = get_tpfolder(fname)
+    if sess == tp_folder:
+        return sess
+    else:
+        raise Exception("Timepoint folder does not match session number in file.")
+    
+        
 def zscore(x):
     """ Z-score numpy array or pandas series """
     return (x - x.mean()) / x.std()
@@ -31,8 +57,10 @@ def get_proc_outfile(infile, suffix):
     """Take infile to derive outdir. Changes path from raw to proc
     and adds suffix to basename."""
     outdir = os.path.dirname(infile)
-    outdir = outdir.replace("raw", "proc")
+    outdir = re.sub('Raw Pupil Data', 'Processed Pupil Data', outdir, flags=re.IGNORECASE)
+    outdir = re.sub("(Gaze|Edat) data/","", outdir, flags=re.IGNORECASE)
     if not os.path.exists(outdir):
+        'Output directory does not exist, creating now: "{0}"'.format(outdir)
         os.makedirs(outdir)
     fname = os.path.splitext(os.path.basename(infile))[0] + suffix
     outfile = os.path.join(outdir, fname)

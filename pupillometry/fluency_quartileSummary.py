@@ -18,7 +18,7 @@ from glob import glob
 from datetime import datetime
 
 # Gather processed fluency data
-datadir = '/home/jelman/netshare/VETSA_NAS/PROJ/PupAlz/data/Pupillometry/Fluency/proc'
+datadir = '/home/jelman/netshare/VETSA_NAS/PROJ/PupAlz/data/Pupillometry/Processed Pupil Data/Fluency/Timepoint 1'
 globstr = '*_ProcessedPupil_Quartiles.csv'
 filelist = glob(os.path.join(datadir, globstr))
 # Initiate empty list to hold subject data

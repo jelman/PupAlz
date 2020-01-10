@@ -62,8 +62,9 @@ def save_total_blink_pct(dfresamp, infile):
     outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
     blink_dict = {}
     blink_dict['BlinkPct'] = float(dfresamp.BlinksLR.mean())
-    blink_dict['Subject'] = str(dfresamp.loc[dfresamp.index[0], 'Subject'])
-    blink_dict['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
+    blink_dict['Subject'] = pupil_utils.get_subid(dfresamp['Subject'])
+    blink_dict['Session'] = pupil_utils.get_timepoint(dfresamp['Session'], infile)
+    blink_dict['OddballSession'] = get_oddball_session(infile)
     blink_json = json.dumps(blink_dict)
     with open(outfile, 'w') as f:
         f.write(blink_json)
@@ -187,6 +188,17 @@ def ts_glm(pupilts, trg_onsets, std_onsets, blinks, sampling_rate=30.):
     return resultdict
 
 
+def get_oddball_session(infile):
+    """Returns session as listed in the infile name (1=A, 2=B). If not listed, 
+    default to SessionA."""
+    if infile.find("Session") == -1:
+        session = 'A'
+    else:
+        session = infile.split("Session")[1][0]
+        session = session.replace('1','A').replace('2','B')
+    return (session)
+
+
 def save_glm_results(glm_results, infile):
     """Calculate and save out percent of trials with blinks in session"""
     glm_json = json.dumps(glm_results)
@@ -229,10 +241,12 @@ def proc_subject(filelist):
         else: 
             raise IOError('Could not open {}'.format(fname))   
         subid = pupil_utils.get_subid(df['Subject'])
+        timepoint = pupil_utils.get_timepoint(df['Session'], fname)
+        oddball_sess = get_oddball_session(fname)
         df = pupil_utils.deblink(df)
         dfresamp = pupil_utils.resamp_filt_data(df)
         dfresamp['Condition'] = np.where(dfresamp.CRESP==5, 'Standard', 'Target')
-        pupil_utils.plot_qc(dfresamp, fname.replace("/raw/","/proc/"))
+        pupil_utils.plot_qc(dfresamp, fname)
         sessdf = get_sessdf(dfresamp)
         sessdf['BlinkPct'] = get_blink_pct(dfresamp, fname)
         dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
@@ -244,15 +258,22 @@ def proc_subject(filelist):
                              sessdf.loc[sessdf.Condition=='Target', 'Timestamp'],
                              sessdf.loc[sessdf.Condition=='Standard', 'Timestamp'],
                              dfresamp.BlinksLR)
-        glm_results['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
+        # Set subject ID and session as (as type string)
         glm_results['Subject'] = subid
+        glm_results['Session'] = timepoint
+        glm_results['OddballSession'] = oddball_sess
         save_glm_results(glm_results, fname)
         allconddf = standdf_long.append(targdf_long).reset_index(drop=True)
+        # Set subject ID and session as (as type string)
         allconddf['Subject'] = subid
-        allconddf['Session'] = sessdf.Session.iat[0]    
+        allconddf['Session'] = timepoint   
+        allconddf['OddballSession'] = oddball_sess
         plot_pstc(allconddf, fname)
         save_pstc(allconddf, fname)
+        # Set subject ID and session as (as type string)
         sessdf['Subject'] = subid
+        sessdf['Session'] = timepoint   
+        sessdf['OddballSession'] = oddball_sess        
         sessout = pupil_utils.get_outfile(fname, '_SessionData.csv')    
         sessdf.to_csv(sessout, index=False)
 
@@ -260,11 +281,10 @@ def proc_subject(filelist):
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('USAGE: {} <raw pupil file> '.format(os.path.basename(sys.argv[0])))
-        print('Takes eye tracker data text file (*recoded.gazedata) as input.')
-        print('Removes artifacts, filters, and calculates peristimulus dilation')
-        print('for target vs. non-targets. Processes single subject data and')
-        print('outputs csv files for use in further group analysis.')
-        print('')
+        print("""Takes eye tracker data text file (*recoded.gazedata) as input.
+              Removes artifacts, filters, and calculates peristimulus dilation
+              for target vs. non-targets. Processes single subject data and
+              outputs csv files for use in further group analysis.""")
         
         root = tkinter.Tk()
         root.withdraw()

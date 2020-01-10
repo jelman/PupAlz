@@ -64,7 +64,13 @@ def get_sessdf(dfresamp, eprime):
     sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
     return sessdf
     
-
+def get_eprime_fname(pupil_fname):
+    pupildir, pupilfile = os.path.split(pupil_fname)
+    edatdir = pupildir.replace('Gaze data', 'Edat')   
+    edatfile = os.path.splitext(pupilfile)[0] + '-edat.csv'
+    edat_fname = os.path.join(edatdir, edatfile)  
+    return edat_fname
+    
 def save_total_blink_pct(dfresamp, infile):
     """Calculate and save out percent of trials with blinks in session"""
     outfile = pupil_utils.get_proc_outfile(infile, '_BlinkPct.json')
@@ -257,86 +263,89 @@ def save_pstc(allconddf, infile):
     pstcdf.to_csv(outfile, index=False)
     
 
-def proc_subject(pupil_fname, eprime_fname):
+def proc_subject(filelist):
     """Given an infile of raw pupil data, saves out:
         1. Session level data with dilation data summarized for each trial
         2. Dataframe of average peristumulus timecourse for each condition
         3. Plot of average peristumulus timecourse for each condition
         4. Percent of samples with blinks """
-    print('Processing {}'.format(pupil_fname))
-    if (os.path.splitext(pupil_fname)[-1] == ".gazedata") | (os.path.splitext(pupil_fname)[-1] == ".csv"):
-        df = pd.read_csv(pupil_fname, sep="\t")
-    elif os.path.splitext(pupil_fname)[-1] == ".xlsx":
-        df = pd.read_excel(pupil_fname, parse_dates=False)
-    else: 
-        raise IOError('Could not open {}'.format(pupil_fname))
-    subid = pupil_utils.get_subid(df['Subject'])
     tpre = 0.250
     tpost = 2.5
     samp_rate = 30.
-    df = pupil_utils.deblink(df)
-    df.CurrentObject.replace('StimulusRecord','Stimulus',inplace=True)
-    dfresamp = pupil_utils.resamp_filt_data(df, filt_type='band', string_cols=['TrialId','CurrentObject'])
-    dfresamp = dfresamp.drop(columns='TrialId_x').rename(columns={'TrialId_y':'TrialId'})
-    eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=0)
-    if not np.array_equal(eprime.columns[:3], ['ExperimentName', 'Subject', 'Session']):
-        eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=1)
-    eprime = eprime.rename(columns={"Congruency":"Condition"})
-    pupil_utils.plot_qc(dfresamp, pupil_fname)
-    sessdf = get_sessdf(dfresamp, eprime)
-    sessdf['BlinkPct'] = get_blink_pct(dfresamp, pupil_fname)
-    dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
-    sessdf, condf, incondf, neutraldf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
-                                                  tpre, tpost, samp_rate)
-    condf_long = reshape_df(condf)
-    incondf_long = reshape_df(incondf)
-    neutraldf_long = reshape_df(neutraldf)
-    glm_results = ts_glm(dfresamp.zDiameterPupilLRFilt, 
-                         sessdf.loc[sessdf.Condition=='C', 'Timestamp'],
-                         sessdf.loc[sessdf.Condition=='I', 'Timestamp'],
-                         sessdf.loc[sessdf.Condition=='N', 'Timestamp'],
-                         dfresamp.BlinksLR)
-    glm_results['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
-    glm_results['Subject'] = subid
-    save_glm_results(glm_results, pupil_fname)
-    allconddf = condf_long.append(incondf_long).reset_index(drop=True)
-    allconddf = allconddf.append(neutraldf_long).reset_index(drop=True)
-    allconddf['Subject'] = subid
-    allconddf['Session'] = sessdf.Session.iat[0]    
-    allconddf = allconddf[allconddf.Timepoint<3.0]
-    plot_pstc(allconddf, pupil_fname)
-    save_pstc(allconddf, pupil_fname)
-    sessdf['Subject'] = subid
-    sessout = pupil_utils.get_proc_outfile(pupil_fname, '_SessionData.csv')    
-    sessdf.to_csv(sessout, index=False)
+    for pupil_fname in filelist:
+        print('Processing {}'.format(pupil_fname))
+        if (os.path.splitext(pupil_fname)[-1] == ".gazedata") | (os.path.splitext(pupil_fname)[-1] == ".csv"):
+            df = pd.read_csv(pupil_fname, sep="\t")
+        elif os.path.splitext(pupil_fname)[-1] == ".xlsx":
+            df = pd.read_excel(pupil_fname, parse_dates=False)
+        else: 
+            raise IOError('Could not open {}'.format(pupil_fname))
+        subid = pupil_utils.get_subid(df['Subject'])
+        timepoint = pupil_utils.get_timepoint(df['Session'], pupil_fname)
+        df = pupil_utils.deblink(df)
+        df.CurrentObject.replace('StimulusRecord','Stimulus',inplace=True)
+        dfresamp = pupil_utils.resamp_filt_data(df, filt_type='band', string_cols=['TrialId','CurrentObject'])
+        dfresamp = dfresamp.drop(columns='TrialId_x').rename(columns={'TrialId_y':'TrialId'})
+        eprime_fname = get_eprime_fname(pupil_fname)
+        eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=0)
+        if not np.array_equal(eprime.columns[:3], ['ExperimentName', 'Subject', 'Session']):
+            eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=1)
+        edatsess = pupil_utils.get_timepoint(eprime['Session'], eprime_fname) 
+        eprime = eprime.rename(columns={"Congruency":"Condition"})
+        pupil_utils.plot_qc(dfresamp, pupil_fname)
+        sessdf = get_sessdf(dfresamp, eprime)
+        sessdf['BlinkPct'] = get_blink_pct(dfresamp, pupil_fname)
+        dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
+        sessdf, condf, incondf, neutraldf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
+                                                      tpre, tpost, samp_rate)
+        condf_long = reshape_df(condf)
+        incondf_long = reshape_df(incondf)
+        neutraldf_long = reshape_df(neutraldf)
+        glm_results = ts_glm(dfresamp.zDiameterPupilLRFilt, 
+                             sessdf.loc[sessdf.Condition=='C', 'Timestamp'],
+                             sessdf.loc[sessdf.Condition=='I', 'Timestamp'],
+                             sessdf.loc[sessdf.Condition=='N', 'Timestamp'],
+                             dfresamp.BlinksLR)
+        # Set subject ID and session as (as type string)
+        glm_results['Subject'] = subid
+        glm_results['Session'] = timepoint
+        save_glm_results(glm_results, pupil_fname)
+        allconddf = condf_long.append(incondf_long).reset_index(drop=True)
+        allconddf = allconddf.append(neutraldf_long).reset_index(drop=True)
+        # Set subject ID and session as (as type string)
+        allconddf['Subject'] = subid
+        allconddf['Session'] = timepoint   
+        allconddf = allconddf[allconddf.Timepoint<3.0]
+        plot_pstc(allconddf, pupil_fname)
+        save_pstc(allconddf, pupil_fname)
+        sessdf['Subject'] = subid
+        sessdf['Session'] = timepoint
+        sessout = pupil_utils.get_proc_outfile(pupil_fname, '_SessionData.csv')    
+        sessdf.to_csv(sessout, index=False)
 
     
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('')
-        print('USAGE: {} <raw pupil file> <eprime file>'.format(os.path.basename(sys.argv[0])))
-        print('Takes eye tracker data text file (*.gazedata) and eprime')
-        print('converted from .edat to .csv as input. ')
-        print('Removes artifacts, filters, and calculates peristimulus dilation')
-        print('for congruent, incongruent, and the contrast between the two.')
-        print('Processes single subject data and outputs csv files for use in')
-        print('further group analysis.')
+        print('USAGE: {} <raw pupil file> '.format(os.path.basename(sys.argv[0])))
+        print("""Takes eye tracker data text file (*.gazedata/*.xlsx/*.csv) as input.
+              Uses filename and path of eye tracker data to additionally identify 
+              and load eprime file (must already be converted from .edat to .csv. 
+              Removes artifacts, filters, and calculates peristimulus dilation
+              for congruent, incongruent, and the contrast between the two.
+              Processes single subject data and outputs csv files for use in
+              further group analysis.""")
         print('')
         root = tkinter.Tk()
         root.withdraw()
         # Select files to process
-        pupil_fname = filedialog.askopenfilenames(parent=root,
+        filelist = filedialog.askopenfilenames(parent=root,
                                                     title='Choose Stroop pupil gazedata file to process',
-                                                    filetypes = (("gazedata files","*.gazedata"),("all files","*.*")))[0]
-        eprime_fname = filedialog.askopenfilenames(parent=root,
-                                                    title='Choose Stroop eprime file to process',
-                                                    filetypes = (("eprime files","*.csv"),("all files","*.*")))[0]
-        
+                                                    filetypes = (("xlsx files","*.xlsx"),("all files","*.*")))
+        filelist = list(filelist)
         # Run script
-        proc_subject(pupil_fname, eprime_fname)
+        proc_subject(filelist)
 
     else:
-        pupil_fname = os.path.abspath(sys.argv[1])
-        eprime_fname = os.path.abspath(sys.argv[2])
-        proc_subject(pupil_fname, eprime_fname)
-
+        filelist = [os.path.abspath(f) for f in sys.argv[1:]]
+        proc_subject(filelist)

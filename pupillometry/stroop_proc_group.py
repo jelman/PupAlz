@@ -68,6 +68,7 @@ def get_pstc_data(datadir):
     pstc_list = []
     for sub_file in pstc_filelist:
         subdf = pd.read_csv(sub_file)
+        subdf['Session'] = pupil_utils.get_tpfolder(sub_file)
         pstc_list.append(subdf)
     pstcdf = pd.concat(pstc_list).reset_index(drop=True)
     pstcdf.Session = pstcdf.Session.astype(int)
@@ -108,15 +109,18 @@ def plot_group_pstc(pstcdf, outfile, trial_start=0.):
 def proc_group(datadir):
     sessdf = get_sess_data(datadir)
     sessdf_wide = unstack_conditions(sessdf)
-    sessdf_wide.Subject = sessdf_wide.Subject.astype('str')
+    sessdf_wide = sessdf_wide.astype({"Subject": str, "Session": str})    
     glm_df = get_glm_data(datadir)
     blink_df = get_blink_data(datadir)
+    blink_df = blink_df.astype({"Subject": str, "Session": str})    
     alldat = pd.merge(sessdf_wide, glm_df, on=['Subject','Session'])
     alldat = pd.merge(alldat, blink_df, on=['Subject','Session'])
     tstamp = datetime.now().strftime("%Y%m%d")
     outfile = os.path.join(datadir, 'stroop_group_data_' + tstamp + '.csv')
+    print('Writing processed data to {0}'.format(outfile))
     alldat.to_csv(outfile, index=False)
     pstcdf = get_pstc_data(datadir)    
+    pstcdf = pstcdf.astype({"Subject": str, "Session": str})
     pstcdf = pd.merge(pstcdf, blink_df, on=['Subject','Session'])
     pstcdf = pstcdf[pstcdf.Timepoint<=3.0]
     pstc_outfile = os.path.join(datadir, 'stroop_group_pstc_' + tstamp + '.png')
@@ -126,14 +130,14 @@ def proc_group(datadir):
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('USAGE: {} <data directory> '.format(os.path.basename(sys.argv[0])))
-        print('Searches for datafiles created by stroop_proc_subject.py for use as input.')
-        print('This includes:')
-        print('  <session>-<subject>_SessionData.csv')
-        print('  <session>-<subject>_PSTCdata.csv')
-        print('  <session>-<subject>_BlinkPct.json')
-        print('  <session>-<subject>_GLMresults.json')
-        print('Calculates subject level measures of pupil dilation.')
-        print('Plots group level PTSC. Output can be used for statistical analysis.')
+        print("""Searches for datafiles created by stroop_proc_subject.py for use as input.')
+              This includes:
+                  <session>-<subject>_SessionData.csv
+                  <session>-<subject>_PSTCdata.csv
+                  <session>-<subject>_BlinkPct.json
+                  <session>-<subject>_GLMresults.json
+              Calculates subject level measures of pupil dilation. Plots group 
+              level PTSC. Output can be used for statistical analysis.""")
         print('')
         
         root = tkinter.Tk()

@@ -102,6 +102,7 @@ def proc_subject(filelist):
         else: 
             raise IOError('Could not open {}'.format(fname))   
         subid = pupil_utils.get_subid(df['Subject'])
+        timepoint = pupil_utils.get_timepoint(df['Session'], fname)
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
         dfresamp = dfresamp.reset_index(level='Trial', drop=True).reset_index()
@@ -109,13 +110,15 @@ def proc_subject(filelist):
         pupilcols = ['Subject', 'Trial', 'Timestamp', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf = pupildf[pupilcols]
-        # Set subject ID as (as type string)
-        pupildf['Subject'] = subid        
+        # Set subject ID and session as (as type string)
+        pupildf['Subject'] = subid
+        pupildf['Session'] = timepoint      
         pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
         pupildf.loc[:,'Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
+        print('Writing processed data to {0}'.format(pupil_outname))
         plot_trials(pupildf, fname)
 
 
@@ -124,18 +127,16 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('')
         print('USAGE: {} <raw pupil file> '.format(os.path.basename(sys.argv[0])))
-        print('Processes single subject data from digit span task and outputs' )
-        print('csv files for use in further group analysis.')
-        print('Takes eye tracker data text file (*.gazedata) as input.')
-        print('Removes artifacts, filters, and calculates dilation per 1sec.')
-        print('')
+        print('USAGE: {} <raw pupil file> '.format(os.path.basename(sys.argv[0])))
+        print("""Processes single subject data from HVLT encoding task and outputs
+              csv files for use in further group analysis. Takes eye tracker 
+              data text file (*.gazedata) as input. Removes artifacts, filters, 
+              and calculates dilation per 1sec.""")
         root = tkinter.Tk()
         root.withdraw()
         # Select files to process
         filelist = filedialog.askopenfilenames(parent=root,
-                                              title='Choose HVLT Encoding pupil gazedata file to process',
-                                              filetypes = (("gazedata files","*.gazedata"),
-                                                           ("all files","*.*")))
+                                              title='Choose HVLT Encoding pupil gazedata file to process')
 
         filelist = list(filelist)
         # Run script
