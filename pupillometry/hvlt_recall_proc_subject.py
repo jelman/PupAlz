@@ -40,7 +40,7 @@ def plot_trials(pupildf, fname):
     p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation")
     plt.tight_layout()
     plot_outname = pupil_utils.get_proc_outfile(fname, "_PupilPlot.png")
-    plot_outname = plot_outname.replace("-Recognition","")
+    plot_outname = plot_outname.replace("-Delay","-Recall")
     p.figure.savefig(plot_outname)
     plt.close()
     
@@ -89,7 +89,7 @@ def proc_subject(filelist):
         pupildf['Session'] = timepoint  
         pupildf['Timestamp'] = pupildf.Timestamp.dt.total_seconds()
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
-        pupil_outname = pupil_outname.replace("-Recognition","")
+        pupil_outname = pupil_outname.replace("-Delay","-Recall")
         pupildf.to_csv(pupil_outname, index=False)
         print('Writing processed data to {0}'.format(pupil_outname))
         plot_trials(pupildf, fname)
