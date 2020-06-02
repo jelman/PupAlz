@@ -34,10 +34,18 @@ def get_sess_data(datadir):
         sess_list.append(subdf)
     sessdf = pd.concat(sess_list).reset_index(drop=True)
     sessdf = sessdf.sort_values(by=['Subject', 'Load', 'Timestamp'])
+    # Max dilation and second when it occurred
+    maxdf = sessdf.loc[sessdf.groupby(['Subject', 'Load'])['Dilation'].idxmax()]
+    maxdf = maxdf[['Subject', 'Session', 'Load', 'Timestamp', 'Dilation']]
+    maxdf = maxdf.rename(columns={'Timestamp':'MaxTime', 'Dilation':'MaxDilation'})
     sessdf = sessdf.groupby(['Subject','Load']).last().reset_index()
+    # Merge in max dilation and max time
+    sessdf = sessdf.merge(maxdf, on=['Subject','Session','Load'])
     # Filter for loads that have data at the last second
     idx = sessdf.Timestamp.str.slice(-2).values.astype('int') == sessdf.Load.values+1
     return sessdf.loc[idx,:] 
+
+
 
 
 
@@ -54,11 +62,11 @@ def unstack_conditions(dflong):
 def proc_group(datadir):
     sessdf_long = get_sess_data(datadir)
     tstamp = datetime.now().strftime("%Y%m%d")
-    sessdf_long_outfile = os.path.join(datadir, 'digitspan_long_group_' + tstamp + '.csv')
+    sessdf_long_outfile = os.path.join(datadir, 'digitspan_group_REDCap' + tstamp + '.csv')
     sessdf_long.to_csv(sessdf_long_outfile, index=False)
-    sessdf_wide = unstack_conditions(sessdf_long)
-    sessdf_wide_outfile = os.path.join(datadir, 'digitspan_wide_group_' + tstamp + '.csv')
-    sessdf_wide.to_csv(sessdf_wide_outfile, index=False)
+    # sessdf_wide = unstack_conditions(sessdf_long)
+    # sessdf_wide_outfile = os.path.join(datadir, 'digitspan_wide_group_' + tstamp + '.csv')
+    # sessdf_wide.to_csv(sessdf_wide_outfile, index=False)
     plot_outfile = os.path.join(datadir, 'digitspan_group_plot_' + tstamp + '.png')
     sns.set_context('notebook')
     sns.set_style('ticks')
