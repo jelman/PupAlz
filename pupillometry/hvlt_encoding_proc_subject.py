@@ -60,7 +60,7 @@ def clean_trials(trialevents):
         trial_resamp['Baseline'] = baseline
         trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
         trial_resamp = trial_resamp[trial_resamp.CurrentObject.str.match("PlayWord")]
-        trial_resamp.index = pd.DatetimeIndex((trial_resamp.index - trial_resamp.index[0]).values)
+        trial_resamp.index = pd.DatetimeIndex((trial_resamp.index - trial_resamp.index[0]).astype('int'))
         resampled_dict[trial] = trial_resamp        
     dfresamp = pd.concat(resampled_dict, names=['Trial','Timestamp'])
     return dfresamp
@@ -121,6 +121,19 @@ def proc_subject(filelist):
         print('Writing processed data to {0}'.format(pupil_outname))
         plot_trials(pupildf, fname)
 
+        #### Create data for 6 second blocks
+        dfresamp6s = dfresamp.groupby('Trial').apply(lambda x: x.resample('6s', on='Timestamp', closed='right', label='right').mean())
+        pupilcols = ['Subject', 'Trial', 'Timestamp', 'Dilation',
+                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
+        pupildf6s = dfresamp6s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
+        pupildf6s = pupildf6s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
+                                         'BlinksLR':'BlinkPct'})
+        # Set subject ID as (as type string)
+        pupildf6s['Subject'] = subid
+        pupildf6s['Timestamp'] = pd.to_datetime(pupildf6s.Timestamp).dt.strftime('%H:%M:%S')
+        pupil6s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
+        'Writing quartile data to {0}'.format(pupil6s_outname)
+        pupildf6s.to_csv(pupil6s_outname, index=False)
 
     
 if __name__ == '__main__':
