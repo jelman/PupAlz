@@ -115,11 +115,17 @@ def proc_subject(filelist):
             raise IOError('Could not open {}'.format(fname))
         subid = pupil_utils.get_subid(df['Subject'])
         timepoint = pupil_utils.get_timepoint(df['Session'], fname)
-        trialevents = get_trial_events(df)
+        # Skip subjects that do not have 6 trials
+        try:
+            trialevents = get_trial_events(df)
+        except ValueError as e:
+            print(e)
+            print ("Check that subject {0} has 6 trials!".format(subid))
+            continue
         dfresamp = clean_trials(df, trialevents)
         dfresamp = dfresamp.reset_index(drop=False).set_index(['Condition','Trial'])
         dfresamp['Timestamp'] = dfresamp.groupby(level='Trial')['Timestamp'].transform(lambda x: x - x.iat[0])
-        dfresamp['Timestamp'] = pd.to_datetime(dfresamp.Timestamp)
+        dfresamp['Timestamp'] = pd.to_datetime(dfresamp.Timestamp.values.astype('int'))
         ### Create data resampled to 1 second
         dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean())
         pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
