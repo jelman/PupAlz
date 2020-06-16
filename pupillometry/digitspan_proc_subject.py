@@ -56,7 +56,7 @@ def clean_trials(trialevents):
         trial_resamp['Baseline'] = baseline
         trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
         trial_resamp = trial_resamp[trial_resamp.Condition=='Record']
-        trial_resamp.index = pd.DatetimeIndex((trial_resamp.index - trial_resamp.index[0]).values)
+        trial_resamp.index = pd.DatetimeIndex((trial_resamp.index - trial_resamp.index[0]).astype('int'))
         resampled_dict[trial] = trial_resamp        
     dfresamp = pd.concat(resampled_dict, names=['Trial','Timestamp'])
     return dfresamp
@@ -69,12 +69,11 @@ def define_condition(trialdf):
 def get_trial_events(df):
     """
     Create dataframe of trial events. This includes:
-        Condition: ['Letter', 'Category']
-        Trial: [1, 2, 3, 4, 5, 6]
-        TrialPhase = ['Baseline', 'Response']
-        StartStop = ['Start', 'Stop']
-    First finds timestamps where CurrentObject changes to determine starts and stops.
-    Combines these and defines trial, phase and whether it is start or stop time. 
+        Load: [3, 4, 5, 6, 7, 8, 9] Number of digits to recall
+        Trial: Lists load and trial number within each load
+        Condition: ['Ready', 'Record'] Phase of trial
+    First finds timestamps where each load trial begins and ends. Appends info
+    about the load and trial number. Also defines phase of each trial. 
     """
     loads = [x for x in df.CurrentObject.unique() if "Recall" in str(x)]
     # Find last index of each load
@@ -113,6 +112,10 @@ def proc_subject(filelist):
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
         dfresamp = dfresamp.reset_index(level='Timestamp').set_index(['Load','Trial'])
+        # # Save out dfresamp for cleaned pupil at 30Hz for individuals trials 
+        # pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil30Hz.csv')
+        # pupildf.to_csv(pupil_outname, index=True)
+        
         # Take average of each second
         dfresamp1s = dfresamp.groupby(level=['Load','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean()).reset_index()
         # Select and rename columns of interest
