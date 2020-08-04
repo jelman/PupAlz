@@ -10,3 +10,5 @@ Code for the PupAlz study
    nitime  
    nistats  
    tkinter  
+   xlrd
+   
