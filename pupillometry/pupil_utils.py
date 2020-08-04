@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.signal import butter, filtfilt
-import matlab_wrapper
+# import matlab_wrapper
 from scipy.signal import fftconvolve
 from nistats.regression import ARModel, OLSModel
 
@@ -161,20 +161,20 @@ def get_gradient(diameter, gradient_crit=4, n_timepoints=1):
     return gradient
     
     
-def chap_deblink(raw_pupil, gradient, gradient_crit=4, z_outliers=2.5, zeros_outliers = 20,
-                 data_rate=30, linear_interpolation=True, trial2show=0): 
-    matlab = matlab_wrapper.MatlabSession()
-#    matlab.eval(os.path.abspath(__file__))
-    clean_pupil, blinkidx, blinks = matlab.workspace.fix_blinks_PupAlz(np.atleast_2d(raw_pupil).T.tolist(), 
-                                                       float(z_outliers), float(zeros_outliers), 
-                                                       float(data_rate), linear_interpolation, 
-                                                       gradient, 
-                                                       trial2show, 
-                                                       nout=3)
-    if np.all(clean_pupil==0):
-        clean_pupil.fill(np.nan)
-        blinks.fill(np.nan)
-    return clean_pupil, blinks
+# def chap_deblink(raw_pupil, gradient, gradient_crit=4, z_outliers=2.5, zeros_outliers = 20,
+#                  data_rate=30, linear_interpolation=True, trial2show=0): 
+#     matlab = matlab_wrapper.MatlabSession()
+# #    matlab.eval(os.path.abspath(__file__))
+#     clean_pupil, blinkidx, blinks = matlab.workspace.fix_blinks_PupAlz(np.atleast_2d(raw_pupil).T.tolist(), 
+#                                                        float(z_outliers), float(zeros_outliers), 
+#                                                        float(data_rate), linear_interpolation, 
+#                                                        gradient, 
+#                                                        trial2show, 
+#                                                        nout=3)
+#     if np.all(clean_pupil==0):
+#         clean_pupil.fill(np.nan)
+#         blinks.fill(np.nan)
+#     return clean_pupil, blinks
 
 
 def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
