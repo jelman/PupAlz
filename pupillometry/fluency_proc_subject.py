@@ -80,6 +80,8 @@ def get_trial_events(df):
         StartStop = ['Start', 'Stop']
     First finds timestamps where CurrentObject changes to determine starts and stops.
     Combines these and defines trial, phase and whether it is start or stop time. 
+    Checks for either 4 or 6 trials, otherwise raises an error. Assumes first 
+    half of trials are Lett fluency and second half are Category fluency.
     """
     startidx = df['CurrentObject'].ne(df['CurrentObject'].shift().ffill()).astype(bool)
     stopidx = df['CurrentObject'].ne(df['CurrentObject'].shift(-1).bfill()).astype(bool)
@@ -89,13 +91,17 @@ def get_trial_events(df):
                                               (trialevents_start.CurrentObject == "RecordLetter")]
     trialevents_stop = trialevents_stop.loc[(trialevents_stop.CurrentObject=="BeginFile") | 
                                             (trialevents_stop.CurrentObject == "RecordLetter")]
-    trialevents_start['TrialPhase'] = np.tile(['Baseline','Response'], 6)
-    trialevents_start['StatStop'] = 'Start'
-    trialevents_stop['TrialPhase'] = np.tile(['Baseline','Response'], 6)
-    trialevents_stop['StartStop'] = 'Stop'
-    trialevents = trialevents_start.append(trialevents_stop).sort_index()
-    trialevents['Trial'] = np.repeat(range(1,7), 4)
-    trialevents['Condition'] = np.repeat(['Letter', 'Category'], 12)
+    ntrials = np.sum(trialevents_start['CurrentObject']=='ReadLetter')
+    if (ntrials==4) | (ntrials==6):
+        trialevents_start['TrialPhase'] = np.tile(['Baseline','Response'], ntrials)
+        trialevents_start['StatStop'] = 'Start'
+        trialevents_stop['TrialPhase'] = np.tile(['Baseline','Response'], ntrials)
+        trialevents_stop['StartStop'] = 'Stop'
+        trialevents = trialevents_start.append(trialevents_stop).sort_index()
+        trialevents['Trial'] = np.repeat(range(1,ntrials+1), 4)
+        trialevents['Condition'] = np.repeat(['Letter', 'Category'], ntrials*2)
+    else:
+        raise Exception('Expected 4 or 6 trials, subject has {} trials'.format(ntrials))
     return trialevents
 
    
@@ -115,13 +121,7 @@ def proc_subject(filelist):
             raise IOError('Could not open {}'.format(fname))
         subid = pupil_utils.get_subid(df['Subject'])
         timepoint = pupil_utils.get_timepoint(df['Session'], fname)
-        # Skip subjects that do not have 6 trials
-        try:
-            trialevents = get_trial_events(df)
-        except ValueError as e:
-            print(e)
-            print ("Check that subject {0} has 6 trials!".format(subid))
-            continue
+        trialevents = get_trial_events(df)
         dfresamp = clean_trials(df, trialevents)
         dfresamp = dfresamp.reset_index(drop=False).set_index(['Condition','Trial'])
         dfresamp['Timestamp'] = dfresamp.groupby(level='Trial')['Timestamp'].transform(lambda x: x - x.iat[0])
