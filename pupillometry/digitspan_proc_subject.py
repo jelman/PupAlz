@@ -38,6 +38,7 @@ def plot_trials(pupildf, fname):
     palette = sns.cubehelix_palette(len(pupildf.Load.unique()))
     p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Load", palette=palette, legend="brief", ci=None)
     plt.xticks(rotation=45)
+    plt.ylim(-.2, .5)
     plt.tight_layout()
     plot_outname = pupil_utils.get_proc_outfile(fname, "_PupilPlot.png")
     p.figure.savefig(plot_outname)
