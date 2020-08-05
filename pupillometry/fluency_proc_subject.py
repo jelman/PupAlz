@@ -125,7 +125,7 @@ def proc_subject(filelist):
         dfresamp = clean_trials(df, trialevents)
         dfresamp = dfresamp.reset_index(drop=False).set_index(['Condition','Trial'])
         dfresamp['Timestamp'] = dfresamp.groupby(level='Trial')['Timestamp'].transform(lambda x: x - x.iat[0])
-        dfresamp['Timestamp'] = pd.to_datetime(dfresamp.Timestamp.values.astype('int'))
+        dfresamp['Timestamp'] = pd.to_datetime(dfresamp.Timestamp.values.astype(np.int64))
         ### Create data resampled to 1 second
         dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean())
         pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',

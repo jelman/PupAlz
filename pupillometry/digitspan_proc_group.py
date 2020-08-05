@@ -42,7 +42,7 @@ def get_sess_data(datadir):
     # Merge in max dilation and max time
     sessdf = sessdf.merge(maxdf, on=['Subject','Session','Load'])
     # Filter for loads that have data at the last second
-    idx = sessdf.Timestamp.str.slice(-2).values.astype('int') == sessdf.Load.values+1
+    idx = sessdf.Timestamp.str.slice(-2).values.astype(np.int64) == sessdf.Load.values+1
     return sessdf.loc[idx,:] 
 
 
