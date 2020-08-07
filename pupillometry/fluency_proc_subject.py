@@ -42,6 +42,7 @@ def plot_trials(pupildf, fname):
     palette = sns.color_palette("deep", n_colors=len(pupildf.Trial.unique()))
     p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Trial", palette=palette, legend="brief")
     plt.xticks(rotation=45)
+    plt.ylim(-1.0, 1.0)
     plt.tight_layout()
     plt.legend(loc='best')
     plot_outname = pupil_utils.get_proc_outfile(fname, "_PupilPlot.png")
