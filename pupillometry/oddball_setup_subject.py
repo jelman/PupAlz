@@ -91,7 +91,6 @@ def setup_subject(filelist):
         print('Processing {}'.format(fname))
         subid = get_subid(fname)
         session = get_oddball_session(fname)
-        rawdir = os.path.dirname(fname)
         df = recode_gaze_data(fname)
         newfile = rename_gaze_file(fname, subid, session)
         df.to_csv(newfile, index=False, sep="\t")
