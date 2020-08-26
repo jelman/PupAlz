@@ -280,7 +280,7 @@ def proc_subject(filelist):
             df = pd.read_excel(pupil_fname, parse_dates=False)
         else: 
             raise IOError('Could not open {}'.format(pupil_fname))
-        subid = pupil_utils.get_subid(df['Subject'])
+        subid = pupil_utils.get_subid(df['Subject'],pupil_fname)
         timepoint = pupil_utils.get_timepoint(df['Session'], pupil_fname)
         df = pupil_utils.deblink(df)
         df.CurrentObject.replace('StimulusRecord','Stimulus',inplace=True)

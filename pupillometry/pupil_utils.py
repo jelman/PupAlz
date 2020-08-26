@@ -11,17 +11,31 @@ from scipy.signal import fftconvolve
 from nistats.regression import ARModel, OLSModel
 
 
-def get_subid(sub_col):
+def get_fname_subid(fname):
+    """Given the input files, extract subject ID from basename"""
+    fname_base = os.path.basename(fname)  
+    try:
+        subid = re.search(r'(\d{3}).xlsx', fname_base, re.IGNORECASE).group(1)
+        return subid
+    except AttributeError:
+        print("Could not find valid subject ID in path of input file.")
+    
+def get_subid(sub_col, fname):
     """Given a column containing subject ID, checks to see that only one
     ID is present. If one ID only is found, returns this ID. Otherwise raises 
-    an exception."""
+    an exception. Checks subject ID in file against ID in filename. Raises 
+    an exception if hey do not match"""
     unique_subid = sub_col.unique()
     if len(unique_subid) == 1:
         subid = str(unique_subid[0])
-        return subid
     else:
         raise Exception('Found multiple subject IDs in file: {}'.format(unique_subid))
-
+    fname_subid = get_fname_subid(fname)
+    if subid == fname_subid:
+        return subid
+    else:
+        raise Exception('Subject ID in file {0} does not match filename: {1}'.format(unique_subid, fname))   
+    
 def get_tpfolder(fname):
     """Given a file path of input file, extract timepoint based on Timepoint folder."""
     try:

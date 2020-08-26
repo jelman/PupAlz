@@ -240,7 +240,7 @@ def proc_subject(filelist):
             df = pd.read_excel(fname, parse_dates=False)
         else: 
             raise IOError('Could not open {}'.format(fname))   
-        subid = pupil_utils.get_subid(df['Subject'])
+        subid = pupil_utils.get_subid(df['Subject'], fname)
         timepoint = pupil_utils.get_timepoint(df['Session'], fname)
         oddball_sess = get_oddball_session(fname)
         df = pupil_utils.deblink(df)
