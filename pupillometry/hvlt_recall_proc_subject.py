@@ -104,6 +104,7 @@ def proc_subject(filelist):
         pupildf15s['Subject'] = subid
         pupildf15s['Timestamp'] = pd.to_datetime(pupildf15s.Timestamp).dt.strftime('%H:%M:%S')
         pupil15s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
+        pupil15s_outname = pupil15s_outname.replace("-Delay","-Recall")
         'Writing quartile data to {0}'.format(pupil15s_outname)
         pupildf15s.to_csv(pupil15s_outname, index=False)
 
