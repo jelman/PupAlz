@@ -94,10 +94,10 @@ def proc_subject(filelist):
         plot_trials(pupildf, fname)
 
         #### Create data for 15 second blocks
-        dfresamp15s = pupildf.resample('15s', on='Timestamp', closed='right', label='right').mean()
-        pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
-                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
-        pupildf15s = dfresamp15s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
+        dfresamp15s = dfresamp.resample('15s', closed='right', label='right').mean()
+        pupilcols = ['Subject', 'Timestamp', 'Dilation', 'Baseline', 
+                     'DiameterPupilLRFilt', 'BlinksLR']
+        pupildf15s = dfresamp15s.reset_index()[pupilcols].sort_values(by='Timestamp')
         pupildf15s = pupildf15s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
         # Set subject ID as (as type string)
