@@ -47,7 +47,7 @@ def plot_trials(pupildf, fname):
     
 def clean_trials(df):
         dfresamp = pupil_utils.resamp_filt_data(df, filt_type='low', string_cols=['CurrentObject'])
-        baseline = dfresamp['DiameterPupilLRFilt'].first('2000ms').mean()
+        baseline = dfresamp['DiameterPupilLRFilt'].first('1000ms').mean()
         dfresamp['Baseline'] = baseline
         dfresamp['Dilation'] = dfresamp['DiameterPupilLRFilt'] - dfresamp['Baseline']
         onset_time = dfresamp.CurrentObject.ne('Recallinstructions').idxmax()
