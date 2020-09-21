@@ -102,6 +102,7 @@ def proc_subject(filelist):
                                          'BlinksLR':'BlinkPct'})
         # Set subject ID as (as type string)
         pupildf15s['Subject'] = subid
+        pupildf15s['Session'] = timepoint  
         pupildf15s['Timestamp'] = pd.to_datetime(pupildf15s.Timestamp).dt.strftime('%H:%M:%S')
         pupil15s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
         pupil15s_outname = pupil15s_outname.replace("-Delay","-Recall")

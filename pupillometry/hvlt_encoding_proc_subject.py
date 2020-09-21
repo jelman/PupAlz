@@ -130,6 +130,7 @@ def proc_subject(filelist):
                                          'BlinksLR':'BlinkPct'})
         # Set subject ID as (as type string)
         pupildf6s['Subject'] = subid
+        pupildf6s['Session'] = timepoint      
         pupildf6s['Timestamp'] = pd.to_datetime(pupildf6s.Timestamp).dt.strftime('%H:%M:%S')
         pupil6s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
         'Writing quartile data to {0}'.format(pupil6s_outname)

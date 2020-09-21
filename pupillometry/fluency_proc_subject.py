@@ -129,8 +129,8 @@ def proc_subject(filelist):
         dfresamp['Timestamp'] = pd.to_datetime(dfresamp.Timestamp.values.astype(np.int64))
         ### Create data resampled to 1 second
         dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean())
-        pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
-                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
+        pupilcols = ['Subject', 'Session', 'Trial', 'Condition', 'Timestamp', 
+                     'Dilation', 'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
         pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
@@ -145,13 +145,14 @@ def proc_subject(filelist):
         
         #### Create data for 15 second blocks
         dfresamp15s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('15s', on='Timestamp', closed='right', label='right').mean())
-        pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
-                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
+        pupilcols = ['Subject', 'Session', 'Trial', 'Condition', 'Timestamp', 
+                     'Dilation', 'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf15s = dfresamp15s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
         pupildf15s = pupildf15s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
         # Set subject ID as (as type string)
         pupildf15s['Subject'] = subid
+        pupildf15s['Session'] = timepoint
         pupildf15s['Timestamp'] = pd.to_datetime(pupildf15s.Timestamp).dt.strftime('%H:%M:%S')
         pupil15s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
         'Writing quartile data to {0}'.format(pupil15s_outname)
