@@ -50,8 +50,8 @@ def clean_trials(df):
         baseline = dfresamp['DiameterPupilLRFilt'].first('1000ms').mean()
         dfresamp['Baseline'] = baseline
         dfresamp['Dilation'] = dfresamp['DiameterPupilLRFilt'] - dfresamp['Baseline']
-        onset_time = dfresamp.CurrentObject.ne('Recallinstructions').idxmax()
-        dfresamp.index = dfresamp.index - onset_time
+        dfresamp = dfresamp[dfresamp.CurrentObject=='Recall']
+        dfresamp.index = pd.to_datetime((dfresamp.index - dfresamp.index[0]).total_seconds(), unit='s')
         return dfresamp
         
    
@@ -87,14 +87,25 @@ def proc_subject(filelist):
         # Set subject ID and session as (as type string)
         pupildf['Subject'] = subid
         pupildf['Session'] = timepoint  
-        pupildf['Timestamp'] = pupildf.Timestamp.dt.total_seconds()
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupil_outname = pupil_outname.replace("-Delay","-Recall")
         pupildf.to_csv(pupil_outname, index=False)
         print('Writing processed data to {0}'.format(pupil_outname))
         plot_trials(pupildf, fname)
 
-
+        #### Create data for 15 second blocks
+        dfresamp15s = pupildf.resample('15s', on='Timestamp', closed='right', label='right').mean()
+        pupilcols = ['Subject', 'Trial', 'Condition', 'Timestamp', 'Dilation',
+                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
+        pupildf15s = dfresamp15s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
+        pupildf15s = pupildf15s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
+                                         'BlinksLR':'BlinkPct'})
+        # Set subject ID as (as type string)
+        pupildf15s['Subject'] = subid
+        pupildf15s['Timestamp'] = pd.to_datetime(pupildf15s.Timestamp).dt.strftime('%H:%M:%S')
+        pupil15s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
+        'Writing quartile data to {0}'.format(pupil15s_outname)
+        pupildf15s.to_csv(pupil15s_outname, index=False)
 
     
 if __name__ == '__main__':
