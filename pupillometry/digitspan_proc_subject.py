@@ -53,7 +53,7 @@ def clean_trials(trialevents):
         cleantrial = pupil_utils.deblink(rawtrial)
         string_cols = ['Load', 'Trial', 'Condition']
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=string_cols)
-        baseline = trial_resamp.loc[trial_resamp.Condition=='Ready', 'DiameterPupilLRFilt'].mean()
+        baseline = trial_resamp.loc[trial_resamp.Condition=='Ready', 'DiameterPupilLRFilt'].last('250ms').mean()
         trial_resamp['Baseline'] = baseline
         trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
         trial_resamp = trial_resamp[trial_resamp.Condition=='Record']
