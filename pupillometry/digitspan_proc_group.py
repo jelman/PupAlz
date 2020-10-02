@@ -51,10 +51,13 @@ def get_sess_data(datadir):
 
 
 def unstack_conditions(dflong):
-    
+    colnames = ['Session', 'Baseline', 'Diameter', 'Dilation', 'BlinkPct', 
+                'ntrials', 'MaxTime', 'MaxDilation'] 
     df = dflong.pivot(index="Subject", columns='Load', 
-                      values=['Dilation', 'Baseline', 'Diameter', 'BlinkPct', 'ntrials'])
-    df.columns = ['_'.join([str(col[1]),str(col[0])]).strip() for col in df.columns.values]
+                      values=colnames)
+    df.columns = ['_'.join([str(col[0]),'digitspan',str(col[1])]).strip() for col in df.columns.values]
+    neworder = [j+'_digitspan_'+str(i) for i in np.arange(3,10) for j in colnames ]
+    df = df.reindex(neworder, axis=1)
     df = df.reset_index()
     return df
 
@@ -62,12 +65,11 @@ def unstack_conditions(dflong):
     
 def proc_group(datadir):
     sessdf_long = get_sess_data(datadir)
-    tstamp = datetime.now().strftime("%Y%m%d")
-    sessdf_long_outfile = os.path.join(datadir, 'digitspan_group_REDCap' + tstamp + '.csv')
+    sessdf_long = sessdf_long[sessdf_long.ntrials!=1]
+    tstamp = datetime.now().strftime("%Y-%m-%d")
+    sessdf_long_outfile = os.path.join(datadir, 'digitspan_group_long' + tstamp + '.csv')
     sessdf_long.to_csv(sessdf_long_outfile, index=False)
-    # sessdf_wide = unstack_conditions(sessdf_long)
-    # sessdf_wide_outfile = os.path.join(datadir, 'digitspan_wide_group_' + tstamp + '.csv')
-    # sessdf_wide.to_csv(sessdf_wide_outfile, index=False)
+
     plot_outfile = os.path.join(datadir, 'digitspan_group_plot_' + tstamp + '.png')
     sns.set_context('notebook')
     sns.set_style('ticks')
@@ -76,7 +78,12 @@ def proc_group(datadir):
                     data=sessdf_long)
     p.despine()
     p.savefig(plot_outfile, dpi=300)
-
+    sessdf_wide = unstack_conditions(sessdf_long)
+    sessdf_wide.columns = sessdf_wide.columns.str.lower()
+    sessdf_wide_outfile = os.path.join(datadir, 'digitspan_group_REDCap_' + tstamp + '.csv')
+    sessdf_wide.to_csv(sessdf_wide_outfile, index=False)
+    
+    
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print('USAGE: {} <data directory> '.format(os.path.basename(sys.argv[0])))

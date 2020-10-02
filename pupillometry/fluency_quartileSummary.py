@@ -18,6 +18,30 @@ from glob import glob
 from datetime import datetime
 
 
+def pivot_wide(dflong):
+    dflong = dflong.replace({'Timestamp' : 
+                                      {'00:00:15' : '1_15', '00:00:30' : '15_30', 
+                                       '00:00:45' : '30_45', '00:01:00' : '45_60'},
+                              'Condition' : 
+                                      {'Category' : 'cat', 'Letter' : 'let'}})
+
+    dflong = dflong[dflong.Timestamp!='00:00:00']
+    dflong['ConditionTime'] = dflong.Condition + '_' + dflong.Timestamp
+    dflong = dflong.drop(columns=['Condition','Timestamp'])
+    colnames = ['Session', 'Dilation', 'Baseline','Diameter', 'BlinkPct', 'ntrials']
+    dfwide = dflong.pivot(index="Subject", columns='ConditionTime', values=colnames)
+    dfwide.columns = ['_'.join([str(col[0]),'fluency',str(col[1])]).strip() for col in dfwide.columns.values]
+    condition = ['cat', 'let']
+    quart = ['1_15','15_30','30_45','45_60']
+    neworder = [n+'_fluency_'+c+'_'+q for c in condition for q in quart for n in colnames]
+    dfwide = dfwide.reindex(neworder, axis=1)
+    dfwide = dfwide.reset_index()
+    dfwide.columns = dfwide.columns.str.lower()
+    return dfwide
+    
+    
+    
+    
 def proc_group(datadir):
     # Gather processed fluency data
     globstr = '*_ProcessedPupil_Quartiles.csv'
@@ -49,9 +73,12 @@ def proc_group(datadir):
     alldfgrp = alldfgrp.merge(ntrials, on=['Subject','Condition','Timestamp'], validate="one_to_one")
     alldfgrp = alldfgrp.drop(columns='Trial')
     # Save out summarized data
-    outname_avg = ''.join(['fluency_Quartiles_REDCap_',date,'.csv'])
+    outname_avg = ''.join(['fluency_Quartiles_group_',date,'.csv'])
     alldfgrp.to_csv(os.path.join(datadir, outname_avg), index=False)
-
+    
+    alldfgrp_wide = pivot_wide(alldfgrp)
+    outname_wide = ''.join(['fluency_Quartiles_REDCap_',date,'.csv'])
+    alldfgrp_wide.to_csv(os.path.join(datadir, outname_wide), index=False)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
