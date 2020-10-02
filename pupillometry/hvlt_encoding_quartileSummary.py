@@ -17,6 +17,23 @@ from glob import glob
 from datetime import datetime
 
 
+def pivot_wide(dflong):
+    dflong = dflong.replace({'Timestamp' : 
+                                      {'00:00:06' : '1_6', '00:00:12' : '6_12', 
+                                       '00:00:18' : '12_18', '00:00:24' : '18_24'}})
+
+    dflong = dflong[(dflong.Timestamp!='00:00:00') & (dflong.Timestamp!='00:00:30')]
+    colnames = ['Session', 'Baseline','Diameter', 'Dilation', 'BlinkPct', 'ntrials']
+    dfwide = dflong.pivot(index="Subject", columns='Timestamp', values=colnames)
+    dfwide.columns = ['_'.join([str(col[0]),'hvlt_encoding',str(col[1])]).strip() for col in dfwide.columns.values]
+    quart = ['1_6','6_12','12_18','18_24']
+    neworder = [n+'_hvlt_encoding_'+q for q in quart for n in colnames]
+    dfwide = dfwide.reindex(neworder, axis=1)
+    dfwide = dfwide.reset_index()
+    dfwide.columns = dfwide.columns.str.lower()
+    return dfwide
+    
+
 def proc_group(datadir):
     # Gather processed fluency data
     globstr = '*_ProcessedPupil_Quartiles.csv'
@@ -48,8 +65,13 @@ def proc_group(datadir):
     alldfgrp = alldfgrp.merge(ntrials, on=['Subject','Timestamp'], validate="one_to_one")
     alldfgrp = alldfgrp.drop(columns='Trial')
     # Save out summarized data
-    outname_avg = ''.join(['HVLT-Encoding_Quartiles_REDCap_',date,'.csv'])
+    outname_avg = ''.join(['HVLT-Encoding_Quartiles_group_',date,'.csv'])
     alldfgrp.to_csv(os.path.join(datadir, outname_avg), index=False)
+    
+    alldfgrp_wide = pivot_wide(alldfgrp)
+    outname_wide = ''.join(['HVLT-Encoding_Quartiles_REDCap_',date,'.csv'])
+    alldfgrp_wide.to_csv(os.path.join(datadir, outname_wide), index=False)
+
 
 
 if __name__ == '__main__':
