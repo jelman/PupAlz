@@ -5,8 +5,11 @@ Created on Fri Sep 16 12:00:45 2016
 @author: jelman
 
 This script takes Tobii .gazedata file from HVLT recall-rocgnition as input. It 
-first performs interpolation and filtering, The first 1 sec of recall instructions 
-is used as baseline. Dilation at each second is produced. 
+first performs interpolation and filtering. The first 250ms of each trial is
+used as baseline and subtracted from remaining samples in the trial. Mean dilation 
+is then calculated for every trial. Conditions labels corresponding to a hard-coded 
+trial order are added to each trial. If the trial order of conditions is changed, 
+the function hvlt_conditiona_df() should be updated.
 
 Some procedures and parameters adapted from:
 Jackson, I. and Sirois, S. (2009), Infant cognition: going full factorial 
