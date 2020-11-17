@@ -65,7 +65,6 @@ def unstack_conditions(dflong):
     
 def proc_group(datadir):
     sessdf_long = get_sess_data(datadir)
-    sessdf_long = sessdf_long[sessdf_long.ntrials!=1]
     tstamp = datetime.now().strftime("%Y-%m-%d")
     sessdf_long_outfile = os.path.join(datadir, 'digitspan_group_long_' + tstamp + '.csv')
     sessdf_long.to_csv(sessdf_long_outfile, index=False)
