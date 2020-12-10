@@ -8,7 +8,7 @@ Note: Visual QC metrics should be used to exclude bad conditions.
 """
 
 import pandas as pd
-import os
+import os, sys
 from datetime import datetime
 
 try:
