@@ -51,7 +51,7 @@ if __name__ == '__main__':
         filelist = list(filelist)
         outdir  = filedialog.askdirectory()
         # Run script
-        main(filelist)
+        main(filelist, outdir)
 
     else:
         filelist = [os.path.abspath(f) for f in sys.argv[1:]]
