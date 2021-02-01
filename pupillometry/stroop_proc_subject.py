@@ -33,7 +33,7 @@ import seaborn as sns
 import nitime.timeseries as ts
 import nitime.analysis as nta
 import nitime.viz as viz
-from nistats.regression import ARModel, OLSModel
+from nilearn.glm import ARModel, OLSModel
 import pupil_utils
 import re
 try:

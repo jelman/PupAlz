@@ -8,7 +8,7 @@ import seaborn as sns
 from scipy.signal import butter, filtfilt
 # import matlab_wrapper
 from scipy.signal import fftconvolve
-from nistats.regression import ARModel, OLSModel
+from nilearn.glm import ARModel, OLSModel
 
 
 def get_fname_subid(fname):
