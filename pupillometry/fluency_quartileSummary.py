@@ -65,8 +65,9 @@ def proc_group(datadir):
     # outname_all = ''.join(['fluency_Quartiles_AllTrials_',date,'.csv'])
     # alldf.to_csv(os.path.join(datadir, outname_all), index=False)
     
-    # Filter out quartiles with >50% blinks
-    alldf = alldf[alldf.BlinkPct<.50]
+    # Filter out quartiles with >50% blinks or entire trials with >50% blinks
+    exclude = (alldf.groupby('Subject').BlinkPct.transform(lambda x: x.mean())>.50) | (alldf.BlinkPct>.50)
+    alldf = alldf[-exclude]
     # Average across trials within quartile and condition
     alldfgrp = alldf.groupby(['Subject','Condition','Timestamp']).mean().reset_index()
     ntrials = alldf.groupby(['Subject','Condition','Timestamp']).size().reset_index(name='ntrials')
