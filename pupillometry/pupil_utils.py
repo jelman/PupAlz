@@ -160,7 +160,7 @@ def butter_lowpass(highcut, fs, order):
 
 def butter_lowpass_filter(signal, highcut=4., fs=30., order=3):
     """Get numerator and denominator coefficient vectors from Butterworth filter
-    and then apply higpass filter to signal."""
+    and then apply lowpass filter to signal."""
     b, a = butter_lowpass(highcut, fs, order=order)
     y = filtfilt(b, a, signal)
     return y
