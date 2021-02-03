@@ -243,7 +243,7 @@ def orthogonalize(y, x):
     yT = np.atleast_2d(y).T
     xT = np.atleast_2d(x).T
     model = OLSModel(xT).fit(yT)
-    return model.resid.squeeze()
+    return model.residuals.squeeze()
 
 
 def convolve_reg(event_ts, kernel):
