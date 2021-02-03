@@ -62,7 +62,7 @@ def save_total_blink_pct(dfresamp, infile):
     outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
     blink_dict = {}
     blink_dict['BlinkPct'] = float(dfresamp.BlinksLR.mean())
-    blink_dict['Subject'] = pupil_utils.get_subid(dfresamp['Subject'])
+    blink_dict['Subject'] = pupil_utils.get_subid(dfresamp['Subject'], infile)
     blink_dict['Session'] = pupil_utils.get_timepoint(dfresamp['Session'], infile)
     blink_dict['OddballSession'] = get_oddball_session(infile)
     blink_json = json.dumps(blink_dict)
