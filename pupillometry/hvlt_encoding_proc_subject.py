@@ -40,6 +40,7 @@ except ImportError:
 def plot_trials(pupildf, fname):
     palette = sns.color_palette('muted',n_colors=len(pupildf['Trial'].unique()))
     p = sns.lineplot(data=pupildf, x="Word",y="Dilation", hue="Trial", palette=palette,legend="brief")
+    plt.ylim(-.2, .5)
     plt.xticks(rotation=45)
     plt.tight_layout()
     plot_outname = pupil_utils.get_proc_outfile(fname, "_PupilPlot.png")
@@ -56,7 +57,7 @@ def clean_trials(trialevents):
         cleantrial.loc[:,'Trial'] = cleantrial.Trial.astype('str')
         string_cols = ['Trial', 'CurrentObject']
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=string_cols)        
-        baseline = trial_resamp.loc[trial_resamp.CurrentObject=="Ready","DiameterPupilLRFilt"].last("500ms").mean()
+        baseline = trial_resamp.loc[trial_resamp.CurrentObject=="Ready","DiameterPupilLRFilt"].last("1000ms").mean()
         trial_resamp['Baseline'] = baseline
         trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
         trial_resamp = trial_resamp[trial_resamp.CurrentObject.str.match("PlayWord")]
