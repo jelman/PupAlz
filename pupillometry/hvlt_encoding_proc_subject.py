@@ -39,7 +39,7 @@ except ImportError:
 
 def plot_trials(pupildf, fname):
     palette = sns.color_palette('muted',n_colors=len(pupildf['Trial'].unique()))
-    p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Trial", palette=palette,legend="brief")
+    p = sns.lineplot(data=pupildf, x="Word",y="Dilation", hue="Trial", palette=palette,legend="brief")
     plt.xticks(rotation=45)
     plt.tight_layout()
     plot_outname = pupil_utils.get_proc_outfile(fname, "_PupilPlot.png")
@@ -63,6 +63,7 @@ def clean_trials(trialevents):
         trial_resamp.index = pd.DatetimeIndex((trial_resamp.index - trial_resamp.index[0]).astype(np.int64))
         resampled_dict[trial] = trial_resamp        
     dfresamp = pd.concat(resampled_dict, names=['Trial','Timestamp'])
+    dfresamp = dfresamp.reset_index(level='Trial', drop=True).reset_index()        
     return dfresamp
     
 def define_condition(trialdf):
@@ -105,36 +106,22 @@ def proc_subject(filelist):
         timepoint = pupil_utils.get_timepoint(df['Session'], fname)
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
-        dfresamp = dfresamp.reset_index(level='Trial', drop=True).reset_index()
-        pupildf = dfresamp.groupby('Trial').apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean()).reset_index()
-        pupilcols = ['Subject', 'Trial', 'Timestamp', 'Dilation',
+        pupildf = dfresamp.groupby(['Trial','CurrentObject']).mean().reset_index()
+        pupildf['Word'] = pupildf.CurrentObject.str.replace('PlayWord','').astype('int')        
+        pupilcols = ['Subject', 'Trial', 'Word', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf = pupildf[pupilcols]
+        pupildf = pupildf.sort_values(by=['Trial','Word'])
         # Set subject ID and session as (as type string)
         pupildf['Subject'] = subid
         pupildf['Session'] = timepoint      
         pupildf = pupildf[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
-        pupildf.loc[:,'Timestamp'] = pupildf.Timestamp.dt.strftime('%H:%M:%S')
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupildf.to_csv(pupil_outname, index=False)
         print('Writing processed data to {0}'.format(pupil_outname))
         plot_trials(pupildf, fname)
 
-        #### Create data for 6 second blocks
-        dfresamp6s = dfresamp.groupby('Trial').apply(lambda x: x.resample('6s', on='Timestamp', closed='right', label='right').mean())
-        pupilcols = ['Subject', 'Trial', 'Timestamp', 'Dilation',
-                     'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
-        pupildf6s = dfresamp6s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
-        pupildf6s = pupildf6s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
-                                         'BlinksLR':'BlinkPct'})
-        # Set subject ID as (as type string)
-        pupildf6s['Subject'] = subid
-        pupildf6s['Session'] = timepoint      
-        pupildf6s['Timestamp'] = pd.to_datetime(pupildf6s.Timestamp).dt.strftime('%H:%M:%S')
-        pupil6s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
-        'Writing quartile data to {0}'.format(pupil6s_outname)
-        pupildf6s.to_csv(pupil6s_outname, index=False)
 
     
 if __name__ == '__main__':
