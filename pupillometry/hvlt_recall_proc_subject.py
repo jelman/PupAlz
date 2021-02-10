@@ -40,6 +40,7 @@ def plot_trials(pupildf, fname):
     p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation")
     plt.tight_layout()
     plot_outname = pupil_utils.get_proc_outfile(fname, "_PupilPlot.png")
+    plot_outname = plot_outname.replace("HVLT_Recall-Recognition","HVLT_Recall")    
     plot_outname = plot_outname.replace("-Delay","-Recall")
     p.figure.savefig(plot_outname)
     plt.close()
@@ -91,6 +92,7 @@ def proc_subject(filelist):
         pupildf['Subject'] = subid
         pupildf['Session'] = timepoint  
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
+        pupil_outname = pupil_outname.replace("HVLT_Recall-Recognition","HVLT_Recall")        
         pupil_outname = pupil_outname.replace("-Delay","-Recall")
         pupildf.to_csv(pupil_outname, index=False)
         print('Writing processed data to {0}'.format(pupil_outname))
@@ -108,6 +110,7 @@ def proc_subject(filelist):
         pupildf10s['Session'] = timepoint  
         pupildf10s['Timestamp'] = pd.to_datetime(pupildf10s.Timestamp).dt.strftime('%H:%M:%S')
         pupil10s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Tertiles.csv')
+        pupil10s_outname = pupil10s_outname.replace("HVLT_Recall-Recognition","HVLT_Recall")        
         pupil10s_outname = pupil10s_outname.replace("-Delay","-Recall")
         'Writing tertile data to {0}'.format(pupil10s_outname)
         pupildf10s.to_csv(pupil10s_outname, index=False)

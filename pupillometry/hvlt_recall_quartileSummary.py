@@ -18,14 +18,15 @@ from datetime import datetime
 
 def pivot_wide(dflong):
     dflong = dflong.replace({'Timestamp' : 
-                                      {'00:00:15' : '1_15', '00:00:30' : '15_30', 
-                                       '00:00:45' : '30_45', '00:01:00' : '45_60'}})
+                                      {'00:00:10' : '1_10', 
+                                       '00:00:20' : '10_20', 
+                                       '00:00:30' : '20_30'}})
 
     dflong = dflong[dflong.Timestamp!='00:00:00']
     colnames = ['Session', 'Baseline','Diameter', 'Dilation', 'BlinkPct']
     dfwide = dflong.pivot(index="Subject", columns='Timestamp', values=colnames)
     dfwide.columns = ['_'.join([str(col[0]),'hvlt_recall',str(col[1])]).strip() for col in dfwide.columns.values]
-    quart = ['1_15','15_30','30_45','45_60']
+    quart = ['1_10','10_20','20_30']
     neworder = [n+'_hvlt_recall_'+q for q in quart for n in colnames]
     dfwide = dfwide.reindex(neworder, axis=1)
     dfwide = dfwide.reset_index()
@@ -36,7 +37,7 @@ def pivot_wide(dflong):
 
 def proc_group(datadir):
     # Gather processed fluency data
-    globstr = 'HVLT-Recall*_ProcessedPupil_Quartiles.csv'
+    globstr = 'HVLT-Recall*_ProcessedPupil_Tertiles.csv'
     filelist = glob(os.path.join(datadir, globstr))
     # Initiate empty list to hold subject data
     allsubs = []
@@ -52,14 +53,19 @@ def proc_group(datadir):
     
     # Concatenate all subject date
     alldf = pd.concat(allsubs)
+    # Remove time 00:00:00
+    
+    # Remove subjects who have total blinkpct >50%
+    alldf = alldf.groupby('Subject').filter(lambda x: x['BlinkPct'].mean() < .50)
+    # Remove tertiles with over 50% blinks
+    alldf = alldf[alldf.BlinkPct<.50]
     # Save out concatenated data
     date = datetime.today().strftime('%Y-%m-%d')
     # outname_all = ''.join(['fluency_Quartiles_AllTrials_',date,'.csv'])
     # alldf.to_csv(os.path.join(datadir, outname_all), index=False)
     
-    # Filter out quartiles with >50% blinks
     # Save out summarized data
-    outname = ''.join(['HVLT-Recall_Quartiles_group_',date,'.csv'])
+    outname = ''.join(['HVLT-Recall_Tertiles_group_',date,'.csv'])
     alldf.to_csv(os.path.join(datadir, outname), index=False)
 
     alldf_wide = pivot_wide(alldf)
