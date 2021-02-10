@@ -47,7 +47,7 @@ def plot_trials(pupildf, fname):
     
 def clean_trials(df):
         dfresamp = pupil_utils.resamp_filt_data(df, filt_type='low', string_cols=['CurrentObject'])
-        baseline = dfresamp['DiameterPupilLRFilt'].first('1000ms').mean()
+        baseline = dfresamp.loc[dfresamp['CurrentObject']=='Recallinstructions','DiameterPupilLRFilt'].last('1000ms').mean()
         dfresamp['Baseline'] = baseline
         dfresamp['Dilation'] = dfresamp['DiameterPupilLRFilt'] - dfresamp['Baseline']
         dfresamp = dfresamp[dfresamp.CurrentObject=='Recall']
@@ -74,6 +74,7 @@ def proc_subject(filelist):
         df = df[df.CurrentObject.str.contains("Recall", na=False)]
         df = pupil_utils.deblink(df)
         dfresamp = clean_trials(df)
+        dfresamp = dfresamp[dfresamp.index<=dfresamp.index[0] + pd.offsets.Second(30)]
         dfresamp1s = dfresamp.resample('1S', closed='right', label='right').mean()
         dfresamp1s.index = dfresamp1s.index.round('S')
         dfresamp1s = dfresamp1s.dropna(how='all')
@@ -84,6 +85,8 @@ def proc_subject(filelist):
         pupilcols = ['Subject', 'Timestamp', 'Dilation',
                      'Baseline', 'Diameter', 'BlinkPct']
         pupildf = pupildf[pupilcols].sort_values(by='Timestamp')
+        # Keep only first 30s of trial
+        pupildf = pupildf.loc[pupildf.Timestamp<=pupildf.Timestamp[0] + pd.offsets.Second(30)]
         # Set subject ID and session as (as type string)
         pupildf['Subject'] = subid
         pupildf['Session'] = timepoint  
@@ -93,21 +96,21 @@ def proc_subject(filelist):
         print('Writing processed data to {0}'.format(pupil_outname))
         plot_trials(pupildf, fname)
 
-        #### Create data for 15 second blocks
-        dfresamp15s = dfresamp.resample('15s', closed='right', label='right').mean()
+        #### Create data for 10 second blocks
+        dfresamp10s = dfresamp.resample('10s', closed='right', label='right').mean()
         pupilcols = ['Subject', 'Timestamp', 'Dilation', 'Baseline', 
                      'DiameterPupilLRFilt', 'BlinksLR']
-        pupildf15s = dfresamp15s.reset_index()[pupilcols].sort_values(by='Timestamp')
-        pupildf15s = pupildf15s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
+        pupildf10s = dfresamp10s.reset_index()[pupilcols].sort_values(by='Timestamp')
+        pupildf10s = pupildf10s[pupilcols].rename(columns={'DiameterPupilLRFilt':'Diameter',
                                          'BlinksLR':'BlinkPct'})
         # Set subject ID as (as type string)
-        pupildf15s['Subject'] = subid
-        pupildf15s['Session'] = timepoint  
-        pupildf15s['Timestamp'] = pd.to_datetime(pupildf15s.Timestamp).dt.strftime('%H:%M:%S')
-        pupil15s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Quartiles.csv')
-        pupil15s_outname = pupil15s_outname.replace("-Delay","-Recall")
-        'Writing quartile data to {0}'.format(pupil15s_outname)
-        pupildf15s.to_csv(pupil15s_outname, index=False)
+        pupildf10s['Subject'] = subid
+        pupildf10s['Session'] = timepoint  
+        pupildf10s['Timestamp'] = pd.to_datetime(pupildf10s.Timestamp).dt.strftime('%H:%M:%S')
+        pupil10s_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil_Tertiles.csv')
+        pupil10s_outname = pupil10s_outname.replace("-Delay","-Recall")
+        'Writing tertile data to {0}'.format(pupil10s_outname)
+        pupildf10s.to_csv(pupil10s_outname, index=False)
 
     
 if __name__ == '__main__':
@@ -117,7 +120,8 @@ if __name__ == '__main__':
         print("""Processes single subject data from HVLT task and outputs csv
               files for use in further group analysis. Takes eye tracker data 
               text file (*.gazedata) as input. Removes artifacts, filters, and 
-              calculates dilation per 1s.Also creates averages over 15s blocks.""")
+              calculates dilation per 1s. Keeps only first 30sec and creates 
+              averages over 10s blocks.""")
         print('')
         root = tkinter.Tk()
         root.withdraw()
