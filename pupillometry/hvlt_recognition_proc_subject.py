@@ -38,7 +38,18 @@ except ImportError:
     from tkinter import filedialog
 
 
-
+def plot_trials(df, fname):
+    sns.set_style("ticks")
+    p = sns.lineplot(data=df, x="Timestamp", y="Dilation", hue="Condition")
+    p.axvline(x=2.0, color='black', linestyle='--')
+    plt.tight_layout()
+    plot_outname = pupil_utils.get_proc_outfile(fname, "_PSTCPlot.png")
+    plot_outname = plot_outname.replace("HVLT_Recall-Recognition","HVLT_Recognition")    
+    plot_outname = plot_outname.replace("-Delay","-Recognition")
+    p.figure.savefig(plot_outname)
+    plt.close()
+    
+    
 def hvlt_conditions_df():
     """
     Creates a dataframe with hard-coded trial conditions for HVLT recognition. 
@@ -58,7 +69,7 @@ def clean_trials(df):
         dfresamp = pupil_utils.resamp_filt_data(df, filt_type='low', string_cols=['CurrentObject'])
         # Resampling fills forward fills Current Object when missing. This
         # results in values of "Response" at beginning of trials. Reaplce these
-        # by backfilling from first occurrence of "Fixation" in every trial.
+        # by backfilling from first occurrence of "Fixation" in every trial. 
         for i in dfresamp.TrialId.unique():
             trialstartidx = (dfresamp.TrialId==i).idxmax()
             fixstartidx = (dfresamp.loc[dfresamp.TrialId==i,"CurrentObject"]=="Fixation").idxmax()
@@ -70,19 +81,21 @@ def clean_trials(df):
 def proc_all_trials(dfresamp):
     """ 
     Process single trial using the following steps:
-        1) Get mean diameter of first 500ms as baseline 
+        1) Get mean diameter of first 250ms as baseline 
         2) Calculate dilation by subtracting baseline from diameter at all samples
         3) Get mean dilation for each trial
         4) Get mean blink pct per trial
         5) Get duration of each trial
     """
+    dfresamp = dfresamp[~(dfresamp.CurrentObject=="Fixation")]
     dfresamp['Baseline'] = dfresamp.groupby('TrialId')['DiameterPupilLRFilt'].transform(lambda x: x.first('250ms').mean())
     dfresamp['Dilation'] = dfresamp['DiameterPupilLRFilt'] - dfresamp['Baseline']
     dfresamp['Duration'] = dfresamp.groupby('TrialId')['TrialId'].transform(lambda x: (x.index[-1] - x.index[0]) / np.timedelta64(1, 's'))
-    alltrialsdf = dfresamp.groupby('TrialId')[['Baseline','DiameterPupilLRFilt','Dilation','BlinksLR','Duration']].mean()
-    alltrialsdf = alltrialsdf.reset_index()    
+    dfresamp['BlinkPct'] = dfresamp.groupby('TrialId')['BlinksLR'].transform(lambda x: x.mean())
+    alltrialsdf = dfresamp.reset_index()
+    alltrialsdf['Timestamp'] = alltrialsdf.groupby('TrialId')['Timestamp'].transform(lambda x: (x - x.iat[0]) / np.timedelta64(1, 's'))
     conditions = hvlt_conditions_df()
-    alltrialsdf = alltrialsdf.merge(conditions[['TrialId','Condition']], on='TrialId')
+    alltrialsdf = alltrialsdf.merge(conditions[['TrialId','Condition']], on='TrialId') 
     return alltrialsdf    
     
 def proc_subject(filelist):
@@ -106,25 +119,24 @@ def proc_subject(filelist):
         # Keep only samples after last sample of Recall
         df = df[df[df.CurrentObject=="Recall"].index[-1]+1:]
         df = pupil_utils.deblink(df)
-        dfresamp = pupil_utils.resamp_filt_data(df, filt_type='low', string_cols=['CurrentObject'])
-        # Resampling fills forward fills Current Object when missing. This
-        # results in values of "Response" at beginning of trials. Reaplce these
-        # by backfilling from first occurrence of "Fixation" in every trial.
-        for i in dfresamp.TrialId.unique():
-            trialstartidx = (dfresamp.TrialId==i).idxmax()
-            fixstartidx = (dfresamp.loc[dfresamp.TrialId==i,"CurrentObject"]=="Fixation").idxmax()
-            dfresamp.loc[trialstartidx:fixstartidx, "CurrentObject"] = "Fixation"
-        dfresamp = clean_trials(df)
-        pupildf = proc_all_trials(dfresamp)
+        dfresamp = clean_trials(df)      
+        alltrialsdf = proc_all_trials(dfresamp)
+        # Remove trials with >50% blinks
+        alltrialsdf = alltrialsdf[alltrialsdf.BlinkPct<.50]              
+        
+        plot_trials(alltrialsdf, fname)
+        pupildf = alltrialsdf.groupby(['Condition', 'Timestamp'])[['Baseline','DiameterPupilLRFilt','Dilation','BlinksLR','Duration']].mean()
+        pupildf = pupildf.reset_index()  
         pupildf['Subject'] = subid
         pupildf['Session'] = timepoint
         pupildf = pupildf.rename(columns={'DiameterPupilLRFilt':'Diameter',
                                                   'BlinksLR':'BlinkPct'})
         # Reorder columns
-        cols = ['Subject', 'Session', 'TrialId', 'Baseline', 'Diameter', 
+        cols = ['Subject', 'Session', 'Baseline', 'Diameter', 
                 'Dilation', 'BlinkPct', 'Duration','Condition']
         pupildf = pupildf[cols]
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
+        pupil_outname = pupil_outname.replace("HVLT_Recall-Recognition","HVLT_Recognition")    
         pupil_outname = pupil_outname.replace("-Delay","-Recognition")
         pupildf.to_csv(pupil_outname, index=False)
         print('Writing processed data to {0}'.format(pupil_outname))
