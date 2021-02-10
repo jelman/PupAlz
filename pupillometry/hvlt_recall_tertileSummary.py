@@ -69,7 +69,7 @@ def proc_group(datadir):
     alldf.to_csv(os.path.join(datadir, outname), index=False)
 
     alldf_wide = pivot_wide(alldf)
-    outname_wide = ''.join(['HVLT-Recall_Quartiles_REDCap_',date,'.csv'])
+    outname_wide = ''.join(['HVLT-Recall_Tertiles_REDCap_',date,'.csv'])
     alldf_wide.to_csv(os.path.join(datadir, outname_wide), index=False)
     
 
