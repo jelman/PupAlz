@@ -17,7 +17,7 @@ from datetime import datetime
 
 
 def pivot_wide(dflong):
-    colnames = ['Session','Dilation','Baseline','Diameter','BlinkPct','Duration','ntrials']
+    colnames = ['Baseline', 'Dilation_mean', 'Dilation_max', 'Diameter_mean', 'Diameter_max', 'Duration']
     dfwide = dflong.pivot(index="Subject", columns='Condition', values=colnames)
     dfwide.columns = ['_'.join([str(col[0]),'hvlt_recognition',str(col[1])]).strip() for col in dfwide.columns.values]
     condition = ['old', 'new']
@@ -26,8 +26,6 @@ def pivot_wide(dflong):
     dfwide = dfwide.reset_index()
     dfwide.columns = dfwide.columns.str.lower()
     return dfwide
-    
-    
     
     
 def proc_group(datadir):
@@ -50,20 +48,18 @@ def proc_group(datadir):
     alldf = pd.concat(allsubs)
     # Save out concatenated data
     date = datetime.today().strftime('%Y-%m-%d')
-    outname_all = ''.join(['HVLT-Recognition_group_AllTrials_',date,'.csv'])
-    alldf.to_csv(os.path.join(datadir, outname_all), index=False)
+   
+    # Save out full trial data
+    outname_avg = ''.join(['HVLT-Recognition_group_FullTrial_',date,'.csv'])
+    alldf.to_csv(os.path.join(datadir, outname_avg), index=False)
     
-    # Filter out trials with >50% blinks
-    alldf = alldf[alldf.BlinkPct<.50]
-    # Average across trials within quartile and condition
-    alldfgrp = alldf.groupby(['Subject','Condition']).mean().reset_index()
-    ntrials = alldf.groupby(['Subject','Condition']).size().reset_index(name='ntrials')
-    alldfgrp = alldfgrp.merge(ntrials, on=['Subject','Condition'], validate="one_to_one")
-    alldfgrp = alldfgrp.drop(columns='TrialId')
-    # Save out summarized data
-    outname_avg = ''.join(['HVLT-Recognition_group_Averaged_',date,'.csv'])
-    alldfgrp.to_csv(os.path.join(datadir, outname_avg), index=False)
-    
+    # Summarize data: mean and max dilation per condition
+    ## Only consider samples within 3sec of stimulus onset ##
+    alldf = alldf[alldf.Timestamp<=3.0]
+    alldfgrp = alldf.groupby(['Subject','Condition']).mean()
+    alldfgrp = alldfgrp.rename(columns={'Dilation':'Dilation_mean', 'Diameter':'Diameter_mean'})
+    alldfgrp[['Dilation_max','Diameter_max']] = alldf.groupby(['Subject','Condition'])[['Dilation','Diameter']].max()    
+    alldfgrp = alldfgrp.reset_index()
     alldfgrp_wide = pivot_wide(alldfgrp)
     outname_wide = ''.join(['HVLT-Recognition_group_REDCap_',date,'.csv'])
     alldfgrp_wide.to_csv(os.path.join(datadir, outname_wide), index=False)
