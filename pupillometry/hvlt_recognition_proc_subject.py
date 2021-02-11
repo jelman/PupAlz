@@ -132,7 +132,7 @@ def proc_subject(filelist):
         pupildf = pupildf.rename(columns={'DiameterPupilLRFilt':'Diameter',
                                                   'BlinksLR':'BlinkPct'})
         # Reorder columns
-        cols = ['Subject', 'Session', 'Baseline', 'Diameter', 
+        cols = ['Subject', 'Session', 'Baseline', 'Timestamp','Diameter', 
                 'Dilation', 'BlinkPct', 'Duration','Condition']
         pupildf = pupildf[cols]
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
