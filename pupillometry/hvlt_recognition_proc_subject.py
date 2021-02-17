@@ -41,7 +41,8 @@ except ImportError:
 def plot_trials(df, fname):
     sns.set_style("ticks")
     p = sns.lineplot(data=df, x="Timestamp", y="Dilation", hue="Condition")
-    p.axvline(x=2.0, color='black', linestyle='--')
+    plt.ylim(-.2, .5)
+    p.axvline(x=2.5, color='black', linestyle='--')
     plt.tight_layout()
     plot_outname = pupil_utils.get_proc_outfile(fname, "_PSTCPlot.png")
     plot_outname = plot_outname.replace("HVLT_Recall-Recognition","HVLT_Recognition")    
@@ -126,6 +127,7 @@ def proc_subject(filelist):
         
         plot_trials(alltrialsdf, fname)
         pupildf = alltrialsdf.groupby(['Condition', 'Timestamp'])[['Baseline','DiameterPupilLRFilt','Dilation','BlinksLR','Duration']].mean()
+        pupildf['ntr'] = alltrialsdf.groupby(['Condition', 'Timestamp']).size()
         pupildf = pupildf.reset_index()  
         pupildf['Subject'] = subid
         pupildf['Session'] = timepoint
