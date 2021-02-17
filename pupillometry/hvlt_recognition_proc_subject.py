@@ -127,7 +127,7 @@ def proc_subject(filelist):
         
         plot_trials(alltrialsdf, fname)
         pupildf = alltrialsdf.groupby(['Condition', 'Timestamp'])[['Baseline','DiameterPupilLRFilt','Dilation','BlinksLR','Duration']].mean()
-        pupildf['ntr'] = alltrialsdf.groupby(['Condition', 'Timestamp']).size()
+        pupildf['ntrials'] = alltrialsdf.groupby(['Condition', 'Timestamp']).size()
         pupildf = pupildf.reset_index()  
         pupildf['Subject'] = subid
         pupildf['Session'] = timepoint
@@ -135,7 +135,7 @@ def proc_subject(filelist):
                                                   'BlinksLR':'BlinkPct'})
         # Reorder columns
         cols = ['Subject', 'Session', 'Baseline', 'Timestamp','Diameter', 
-                'Dilation', 'BlinkPct', 'Duration','Condition']
+                'Dilation', 'BlinkPct', 'Duration','Condition','ntrials']
         pupildf = pupildf[cols]
         pupil_outname = pupil_utils.get_proc_outfile(fname, '_ProcessedPupil.csv')
         pupil_outname = pupil_outname.replace("HVLT_Recall-Recognition","HVLT_Recognition")    
