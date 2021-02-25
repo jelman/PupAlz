@@ -109,7 +109,7 @@ def proc_subject(filelist):
         dfresamp = clean_trials(trialevents)
         pupildf = dfresamp.groupby(['Trial','CurrentObject']).mean().reset_index()
         pupildf['Word'] = pupildf.CurrentObject.str.replace('PlayWord','').astype('int')        
-        pupilcols = ['Subject', 'Trial', 'Word', 'Dilation',
+        pupilcols = ['Subject', 'Session', 'Trial', 'Word', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf = pupildf[pupilcols]
         pupildf = pupildf.sort_values(by=['Trial','Word'])
