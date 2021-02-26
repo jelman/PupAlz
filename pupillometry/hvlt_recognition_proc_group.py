@@ -14,7 +14,15 @@ import sys
 import pandas as pd
 from glob import glob
 from datetime import datetime
-
+try:
+    # for Python2
+    import Tkinter as tkinter
+    import tkFileDialog as filedialog
+except ImportError:
+    # for Python3
+    import tkinter
+    from tkinter import filedialog
+    
 
 def pivot_wide(dflong):
     colnames = ['Baseline', 'Dilation_mean', 'Dilation_max', 'Diameter_mean', 'Diameter_max', 'Duration', 'ntrials']
@@ -28,7 +36,7 @@ def pivot_wide(dflong):
     return dfwide
     
     
-def proc_group(datadir):
+def proc_group(datadir, exclude_file):
     # Gather processed fluency data
     globstr = 'HVLT-Recognition-*_ProcessedPupil.csv'
     filelist = glob(os.path.join(datadir, globstr))
@@ -48,7 +56,16 @@ def proc_group(datadir):
     alldf = pd.concat(allsubs)
     # Save out concatenated data
     date = datetime.today().strftime('%Y-%m-%d')
-   
+
+    # Load QC file and remove visually excluded data
+    excludes = pd.read_excel(exclude_file)
+    excludes.Subject = excludes.Subject.astype('str')
+    alldf = pd.merge(alldf, excludes, how='left', on=['Subject','Session'], indicator=True)
+    if (alldf._merge=='left_only').sum() > 0:
+        print('Not all data has been QC\'d!')
+    alldf = alldf[alldf.Exclude!=1].drop(columns=["_merge", "Exclude"])
+    
+    
     # Save out full trial data
     outname_avg = ''.join(['HVLT-Recognition_group_FullTrial_',date,'.csv'])
     alldf.to_csv(os.path.join(datadir, outname_avg), index=False)
@@ -63,6 +80,7 @@ def proc_group(datadir):
     alldfgrp_wide = pivot_wide(alldfgrp)
     outname_wide = ''.join(['HVLT-Recognition_group_REDCap_',date,'.csv'])
     alldfgrp_wide.to_csv(os.path.join(datadir, outname_wide), index=False)
+    
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -72,7 +90,20 @@ if __name__ == '__main__':
         print('  HVLT-Recognition-<subject>_ProcessedPupil.csv')
         print('Extracts mean dilation an duration of trials in each conditiom (old vs. new).')
         print('')
+        print('Require QC file listing excluded trials. Columns should be named:')
+        print('    Subject	Timepoint	Exclude')
+        print('Code Exclude as 0/1 for include/exclude.')
+        print('')
+        
+        root = tkinter.Tk()
+        root.withdraw()
+        # Select folder containing all data to process
+        datadir = filedialog.askdirectory(title='Choose directory containing subject data')
+        exclude_file = filedialog.askopenfilename(title='Choose QC file containing exclude data')
+        proc_group(datadir)
+
     else:
         datadir = sys.argv[1]
-        proc_group(datadir)
+        exclude_file = sys.argv[2]
+        proc_group(datadir, exclude_file)
         
