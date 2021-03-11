@@ -234,8 +234,8 @@ def ts_glm(pupilts, con_onsets, incon_onsets, neut_onsets, blinks, sampling_rate
     tCon_Neut = float(model.Tcontrast([0,0,1,-1,0]).t)
     tIncon_Con = float(model.Tcontrast([0,1,-1,0,0]).t)   
     resultdict = {'Incon_t':tIncon, 'Con_t':tCon, 'Neut_t':tNeut,
-                  'InconNeut_t':tIncon_Neut, 'ConNeut_t':tCon_Neut, 
-                  'InconCon_t':tIncon_Con}
+                  'Incon_Neut_t':tIncon_Neut, 'Con_Neut_t':tCon_Neut, 
+                  'Incon_Con_t':tIncon_Con}
     return resultdict
 
 
