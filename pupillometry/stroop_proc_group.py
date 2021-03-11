@@ -116,9 +116,15 @@ def proc_group(datadir):
     alldat = pd.merge(sessdf_wide, glm_df, on=['Subject','Session'])
     alldat = pd.merge(alldat, blink_df, on=['Subject','Session'])
     tstamp = datetime.now().strftime("%Y%m%d")
-    outfile = os.path.join(datadir, 'stroop_group_data_' + tstamp + '.csv')
+    outfile = os.path.join(datadir, 'stroop_group_' + tstamp + '.csv')
     print('Writing processed data to {0}'.format(outfile))
     alldat.to_csv(outfile, index=False)
+    alldat_redcap = alldat
+    alldat_redcap.columns = ['_'.join(['stroop',str(col)]).lower() for col in alldat_redcap.columns.values]
+    alldat_redcap = alldat_redcap.rename(columns={'stroop_subject':'subject', 'stroop_session':'session'})
+    redcap_outfile = os.path.join(datadir, 'stroop_REDCap_' + tstamp + '.csv')
+    print('Writing processed data for REDCap to {0}'.format(redcap_outfile)) 
+    alldat_redcap.to_csv(redcap_outfile, index=False)
     pstcdf = get_pstc_data(datadir)    
     pstcdf = pstcdf.astype({"Subject": str, "Session": str})
     pstcdf = pd.merge(pstcdf, blink_df, on=['Subject','Session'])
