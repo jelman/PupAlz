@@ -25,7 +25,7 @@ except ImportError:
     
 
 def pivot_wide(dflong):
-    colnames = ['Baseline', 'Dilation_mean', 'Dilation_max', 'Diameter_mean', 'Diameter_max', 'Duration', 'ntrials']
+    colnames = ['Session', 'Baseline', 'Dilation_mean', 'Dilation_max', 'Diameter_mean', 'Diameter_max', 'Duration', 'ntrials']
     dfwide = dflong.pivot(index="Subject", columns='Condition', values=colnames)
     dfwide.columns = ['_'.join([str(col[0]),'hvlt_recognition',str(col[1])]).strip() for col in dfwide.columns.values]
     condition = ['old', 'new']

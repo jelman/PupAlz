@@ -26,7 +26,7 @@ except ImportError:
     
 
 def pivot_wide(dflong):
-    colnames = ['Baseline','Diameter', 'Dilation', 'BlinkPct', 'ntrials']
+    colnames = ['Session','Baseline','Diameter', 'Dilation', 'BlinkPct', 'ntrials']
     dfwide = dflong.pivot(index="Subject", columns='Word', values=colnames)
     dfwide.columns = ['_'.join([str(col[0]),'hvlt_encoding',str(col[1])]).strip() for col in dfwide.columns.values]
     word = np.arange(1,13)
