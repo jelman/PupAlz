@@ -144,10 +144,23 @@ def proc_group(datadir):
     alldat = pd.merge(sessdf_wide, glm_df, on=['Subject','Session','OddballSession'])
     alldat = pd.merge(alldat, blink_df, on=['Subject','Session','OddballSession'])
     alldat = calc_cnr(alldat)
+    # Average across A and B sessions
+    alldat = alldat.groupby(['Subject','Session']).mean().reset_index()
     tstamp = datetime.now().strftime("%Y%m%d")
-    outfile = os.path.join(datadir, 'oddball_group_data_' + tstamp + '.csv')
+    outfile = os.path.join(datadir, 'oddball_group_' + tstamp + '.csv')
     print('Writing processed data to {0}'.format(outfile))
     alldat.to_csv(outfile, index=False)
+    redcap_cols = ['Subject', 'Session', 'Standard_ACC', 'Target_ACC',
+       'Standard_ConstrictionMax', 'Target_ConstrictionMax',
+       'Standard_DilationMax', 'Target_DilationMax', 'Standard_DilationMean',
+       'Target_DilationMean', 'Standard_DilationSD', 'Target_DilationSD', 
+       'Target_Beta', 'Standard_Beta', 'ContrastT','BlinkPct']
+    alldat_redcap = alldat[redcap_cols]
+    alldat_redcap.columns = ['_'.join(['oddball',str(col)]).lower() for col in alldat_redcap.columns.values]
+    alldat_redcap = alldat_redcap.rename(columns={'oddball_subject':'subject', 'oddball_session':'session'})
+    redcap_outfile = os.path.join(datadir, 'oddball_REDCap_' + tstamp + '.csv')
+    print('Writing processed data for REDCap to {0}'.format(redcap_outfile)) 
+    alldat_redcap.to_csv(redcap_outfile, index=False)
     pstc_df = get_pstc_data(datadir)    
     pstc_df = pstc_df.astype({"Subject": str, "Session": str})
     blink_df = blink_df.astype({"Subject": str, "Session": str})
