@@ -290,7 +290,6 @@ def proc_subject(filelist):
         eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=0)
         if not np.array_equal(eprime.columns[:3], ['ExperimentName', 'Subject', 'Session']):
             eprime = pd.read_csv(eprime_fname, sep='\t', encoding='utf-16', skiprows=1)
-        edatsess = pupil_utils.get_timepoint(eprime['Session'], eprime_fname) 
         eprime = eprime.rename(columns={"Congruency":"Condition"})
         pupil_utils.plot_qc(dfresamp, pupil_fname)
         sessdf = get_sessdf(dfresamp, eprime)
