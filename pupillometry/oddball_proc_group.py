@@ -18,6 +18,7 @@ from __future__ import division, print_function, absolute_import
 import os
 import sys
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
@@ -40,15 +41,29 @@ def glob_files(datadir, suffix):
     
     
 def get_sess_data(datadir):
+    """
+    Gather session data. Merge with total percentage of blinks across entire session. 
+    Filter our trial 1 and any trials with >33% blinks. Filter out subjects with
+    >50% blinks across the entire session. Add number of trials contributing to averages.
+    """
+
     sess_filelist = glob_files(datadir, suffix='_SessionData.csv')
     sess_list = []
     for sub_file in sess_filelist:
         subdf = pd.read_csv(sub_file)
         sess_list.append(subdf)
     sessdf = pd.concat(sess_list).reset_index(drop=True)
-    sessdf = sessdf.drop(columns=['TrialId', 'BlinkPct'])
-    sessdf = sessdf.groupby(['Subject','Session','OddballSession','Condition']).median()
-    return sessdf.reset_index()
+    sessdf = sessdf.astype({"Subject": str, "Session": str})  
+    total_blink_df = get_blink_data(datadir)
+    total_blink_df['Subject'] = total_blink_df['Subject'].astype('str')
+    sessdf = pd.merge(sessdf, total_blink_df, on=['Subject','Session','OddballSession'])
+    sessdf = sessdf[(sessdf.TrialId!=1) & (sessdf.BlinkPct<0.33) & (sessdf.TotalBlinkPct<0.50)]
+    sessdf = sessdf.drop(columns=['TrialId'])
+    sessdf_grp = sessdf.groupby(['Subject','Session','Condition']).mean()
+    ntrials = sessdf.groupby(by=['Subject','Session','Condition']).size()
+    ntrials.name = 'ntrials'
+    sessdf_grp = sessdf_grp.join(ntrials)
+    return sessdf_grp.reset_index()
 
 
 def get_oddball_session(infile):
@@ -101,7 +116,7 @@ def get_glm_data(datadir):
 
 
 def unstack_conditions(dflong):
-    df = dflong.pivot_table(index=["Subject","Session","OddballSession"], columns="Condition")
+    df = dflong.pivot_table(index=["Subject","Session"], columns="Condition")
     df.columns = ['_'.join([col[1],col[0]]).strip() for col in df.columns.values]
     df = df.reset_index()
     return df
@@ -125,8 +140,29 @@ def calc_cnr(df):
     return df
 
 
+def calc_pstc_stats(pstc_df, window = [.5, 1.5]):
+    """
+    Parameters
+    ----------
+    pstc_df : pandas dataframe
+        Dataframe in long format containing dilation averaged over trials 
+        at each sample for each condition.
+    window : list, optional
+        DESCRIPTION. The default is [.5, 1.5].
+
+    Returns
+    -------
+    Dataframe with mean and maximum dilation for target and standard conditions
+    as well as difference scores. Considers dilation only within the specified window.
+    """
+    pstc_win = pstc_df[(pstc_df.Timepoint>=window[0]) & (pstc_df.Timepoint<=window[1])]
+    pstc_stats_long = pstc_win.groupby(['Subject','Session','Condition'])['Dilation'].agg(['mean','max']).reset_index()
+    pstc_stats_wide = unstack_conditions(pstc_stats_long)
+    pstc_stats_wide['Diff_max'] = pstc_stats_wide.Target_max - pstc_stats_wide.Standard_max
+    pstc_stats_wide['Diff_mean'] = pstc_stats_wide.Target_mean - pstc_stats_wide.Standard_mean
+    return pstc_stats_wide
+    
 def plot_group_pstc(pstcdf, outfile, trial_start=0.):
-    pstcdf = pstcdf[pstcdf.BlinkPct<.5]
     pstcdf['Subject_Session'] =  pstcdf.Subject + "_" + pstcdf.Session + "_" + pstcdf.OddballSession
     p = sns.lineplot(data=pstcdf, x="Timepoint",y="Dilation", hue="Condition")
     plt.axvline(trial_start, color='k', linestyle='--')
@@ -135,38 +171,38 @@ def plot_group_pstc(pstcdf, outfile, trial_start=0.):
     
     
 def proc_group(datadir):
+    tstamp = datetime.now().strftime("%Y%m%d")
     sessdf = get_sess_data(datadir)
     sessdf_wide = unstack_conditions(sessdf)
-    sessdf_wide = sessdf_wide.astype({"Subject": str, "Session": str})    
+    sessdf_wide = sessdf_wide.rename(columns={'Standard_TotalBlinkPct':'TotalBlinkPct'}).drop(columns=['Target_TotalBlinkPct'])
     glm_df = get_glm_data(datadir)
-    blink_df = get_blink_data(datadir)
-    blink_df[['Subject']]
-    alldat = pd.merge(sessdf_wide, glm_df, on=['Subject','Session','OddballSession'])
-    alldat = pd.merge(alldat, blink_df, on=['Subject','Session','OddballSession'])
-    alldat = calc_cnr(alldat)
-    # Average across A and B sessions
-    alldat = alldat.groupby(['Subject','Session']).mean().reset_index()
-    tstamp = datetime.now().strftime("%Y%m%d")
+    glm_df = glm_df.groupby(['Subject','Session']).mean().reset_index()
+    alldat = pd.merge(sessdf_wide, glm_df, on=['Subject','Session'])
+    # alldat = calc_cnr(alldat)
+    # # Average across A and B sessions
+    # alldat = alldat.groupby(['Subject','Session']).mean().reset_index()
+    pstc_df = get_pstc_data(datadir)    
+    pstc_df = pstc_df.astype({"Subject": str, "Session": str})
+    pstc_outfile = os.path.join(datadir, 'oddball_group_pstc_' + tstamp + '.png')
+    plot_group_pstc(pstc_df, pstc_outfile)
+    pstc_stats = calc_pstc_stats(pstc_df, window = [.5, 1.5])
+    alldat = pd.merge(alldat, pstc_stats, on=['Subject','Session'])
     outfile = os.path.join(datadir, 'oddball_group_' + tstamp + '.csv')
     print('Writing processed data to {0}'.format(outfile))
     alldat.to_csv(outfile, index=False)
-    redcap_cols = ['Subject', 'Session', 'Standard_ACC', 'Target_ACC',
-       'Standard_ConstrictionMax', 'Target_ConstrictionMax',
-       'Standard_DilationMax', 'Target_DilationMax', 'Standard_DilationMean',
-       'Target_DilationMean', 'Standard_DilationSD', 'Target_DilationSD', 
-       'Target_Beta', 'Standard_Beta', 'ContrastT','BlinkPct']
+    redcap_cols = ['Subject', 'Session', 'Standard_ACC', 'Target_ACC', 
+                  'Standard_RT', 'Target_RT', 'TotalBlinkPct',
+                  'Standard_ntrials', 'Target_ntrials', 
+                  'Target_Beta', 'Standard_Beta', 'ContrastT', 
+                  'Standard_max', 'Target_max', 'Standard_mean','Target_mean', 
+                  'Diff_max', 'Diff_mean']
     alldat_redcap = alldat[redcap_cols]
     alldat_redcap.columns = ['_'.join(['oddball',str(col)]).lower() for col in alldat_redcap.columns.values]
     alldat_redcap = alldat_redcap.rename(columns={'oddball_subject':'subject', 'oddball_session':'session'})
     redcap_outfile = os.path.join(datadir, 'oddball_REDCap_' + tstamp + '.csv')
     print('Writing processed data for REDCap to {0}'.format(redcap_outfile)) 
     alldat_redcap.to_csv(redcap_outfile, index=False)
-    pstc_df = get_pstc_data(datadir)    
-    pstc_df = pstc_df.astype({"Subject": str, "Session": str})
-    blink_df = blink_df.astype({"Subject": str, "Session": str})
-    pstc_df = pd.merge(pstc_df, blink_df, on=['Subject','Session','OddballSession'])
-    pstc_outfile = os.path.join(datadir, 'oddball_group_pstc_' + tstamp + '.png')
-    plot_group_pstc(pstc_df, pstc_outfile)
+
 
 
 if __name__ == '__main__':

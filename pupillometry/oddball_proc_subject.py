@@ -52,8 +52,6 @@ def get_sessdf(dfresamp):
     sessdf_cols = ['Subject','Session','Condition','TrialId', 'Timestamp',
                    'ACC','RT']
     sessdf = dfresamp.reset_index().groupby('TrialId')[sessdf_cols].first()
-    newcols = ['DilationMean','DilationMax','DilationSD','ConstrictionMax']
-    sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
     return sessdf
     
 
@@ -61,7 +59,7 @@ def save_total_blink_pct(dfresamp, infile):
     """Calculate and save out percent of trials with blinks in session"""
     outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
     blink_dict = {}
-    blink_dict['BlinkPct'] = float(dfresamp.BlinksLR.mean())
+    blink_dict['TotalBlinkPct'] = float(dfresamp.BlinksLR.mean())
     blink_dict['Subject'] = pupil_utils.get_subid(dfresamp['Subject'], infile)
     blink_dict['Session'] = pupil_utils.get_timepoint(dfresamp['Session'], infile)
     blink_dict['OddballSession'] = get_oddball_session(infile)
@@ -112,25 +110,20 @@ def initiate_condition_df(tpre, tpost, samp_rate):
 def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
     """FOr each trial, calculates the pupil dilation timecourse and saves to 
     appropriate dataframe depending on trial condition (target or standard).
-    Saves summary metric of max dilation and standard deviation of dilation 
-    to session level dataframe."""
+    """
     targdf, standdf = initiate_condition_df(tpre, tpost, samp_rate)
     for trial_series in sessdf.itertuples():
         if (trial_series.TrialId==1) | (trial_series.BlinkPct>0.33):
             continue
         onset = trial_series.Timestamp
         trial_dils = get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate)
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMax'] = trial_dils.max()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationMean'] = trial_dils.mean()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'DilationSD'] = trial_dils.std()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId,'ConstrictionMax'] = trial_dils.min()
         if trial_series.Condition=='Standard':
             standdf[trial_series.TrialId] = np.nan
             standdf.loc[standdf.index[:len(trial_dils)], trial_series.TrialId] = trial_dils.values
         elif trial_series.Condition=='Target':
             targdf[trial_series.TrialId] = np.nan
             targdf.loc[standdf.index[:len(trial_dils)], trial_series.TrialId] = trial_dils.values
-    return sessdf, targdf, standdf
+    return targdf, standdf
             
 
 def reshape_df(dfwide):
@@ -250,8 +243,8 @@ def proc_subject(filelist):
         sessdf = get_sessdf(dfresamp)
         sessdf['BlinkPct'] = get_blink_pct(dfresamp, fname)
         dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
-        sessdf, targdf, standdf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
-                                                  tpre, tpost, samp_rate)
+        targdf, standdf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'],
+                                          tpre, tpost, samp_rate)
         targdf_long = reshape_df(targdf)
         standdf_long = reshape_df(standdf)
         glm_results = ts_glm(dfresamp.zDiameterPupilLRFilt, 
