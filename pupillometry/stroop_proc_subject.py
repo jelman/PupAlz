@@ -60,8 +60,6 @@ def get_sessdf(dfresamp, eprime):
     eprimesub.columns = ['TrialId','Condition','RT']
     sessdf = sessdf.join(eprimesub.set_index('TrialId'))    
     sessdf['PrevCondition'] = sessdf['Condition'].shift()
-    newcols = ['DilationMean','DilationMax','DilationSD','ConstrictionMax']
-    sessdf = sessdf.join(pd.DataFrame(index=sessdf.index, columns=newcols))
     return sessdf
     
 def get_eprime_fname(pupil_fname):
@@ -76,7 +74,7 @@ def save_total_blink_pct(dfresamp, infile):
     outfile = pupil_utils.get_proc_outfile(infile, '_BlinkPct.json')
 
     blink_dict = {}
-    blink_dict['BlinkPct'] = float(dfresamp.BlinksLR.mean())
+    blink_dict['TotalBlinkPct'] = float(dfresamp.BlinksLR.mean())
     blink_dict['Subject'] = str(dfresamp.loc[dfresamp.index[0], 'Subject'])
     blink_dict['Session'] = int(dfresamp.loc[dfresamp.index[0], 'Session'])
     blink_json = json.dumps(blink_dict)
@@ -126,9 +124,7 @@ def initiate_condition_df(tpre, tpost, samp_rate):
 
 def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
     """For each trial, calculates the pupil dilation timecourse and saves to 
-    appropriate dataframe depending on trial condition.
-    Saves summary metric of max dilation and standard deviation of dilation 
-    to session level dataframe."""
+    appropriate dataframe depending on trial condition."""
     condf, incondf, neutraldf = initiate_condition_df(tpre, tpost, samp_rate)
     # Filter trials for subjects with RT data
     # Some subjects have RT==0 for almost all trials, skip these subjects
@@ -138,34 +134,26 @@ def proc_all_trials(sessdf, pupil_dils, tpre=.5, tpost=2.5, samp_rate=30.):
         sessdf = sessdf.loc[sessdf.RT>=250]
         # Filter out trials that are too long (more than 3 SDs above the mean)
         sessdf = sessdf.loc[sessdf.RT < sessdf.RT.mean() + (3*sessdf.RT.std())]
-    for trial_number in sessdf.TrialId.unique():
-        trial_series = sessdf.loc[sessdf.TrialId==trial_number]
-        if trial_series['BlinkPct'].iat[0]>0.33:
+    for trial_series in sessdf.itertuples():
+        if trial_series.BlinkPct>0.33:
             continue
-        onset = trial_series.Timestamp.iat[0]
+        onset = trial_series.Timestamp
         trial_dils = get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate)
         # Depending on sampling rate, trial_dils and condf may not be identical length
         # If off by 1 sample, cut first sample (from tpre period) from trial_dils
         if len(trial_dils)==len(condf)+1:
             trial_dils = trial_dils[1:]
-        """
-        If trial_dils and conddf are different lengths, cut first sample of trial_dils
-        """
-        
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationMax'] = trial_dils.max()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationMean'] = trial_dils.mean()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'DilationSD'] = trial_dils.std()
-        sessdf.loc[sessdf.TrialId==trial_series.TrialId.iat[0],'ConstrictionMax'] = trial_dils.min()
-        if (trial_series.Condition=='C').all():
-            condf[trial_number] = np.nan
-            condf.loc[condf.index[:len(trial_dils)], trial_number] = trial_dils.values
-        elif (trial_series.Condition=='I').all():
-            incondf[trial_number] = np.nan
-            incondf.loc[incondf.index[:len(trial_dils)], trial_number] = trial_dils.values
-        elif (trial_series.Condition=='N').all():
-            neutraldf[trial_number] = np.nan
-            neutraldf.loc[neutraldf.index[:len(trial_dils)], trial_number] = trial_dils.values 
-    return sessdf, condf, incondf, neutraldf
+
+        if trial_series.Condition=='C':
+            condf[trial_series.TrialId] = np.nan
+            condf.loc[condf.index[:len(trial_dils)], trial_series.TrialId] = trial_dils.values
+        elif trial_series.Condition=='I':
+            incondf[trial_series.TrialId] = np.nan
+            incondf.loc[incondf.index[:len(trial_dils)], trial_series.TrialId] = trial_dils.values
+        elif trial_series.Condition=='N':
+            neutraldf[trial_series.TrialId] = np.nan
+            neutraldf.loc[neutraldf.index[:len(trial_dils)], trial_series.TrialId] = trial_dils.values 
+    return condf, incondf, neutraldf
             
 
 def reshape_df(dfwide):
@@ -295,8 +283,8 @@ def proc_subject(filelist):
         sessdf = get_sessdf(dfresamp, eprime)
         sessdf['BlinkPct'] = get_blink_pct(dfresamp, pupil_fname)
         dfresamp['zDiameterPupilLRFilt'] = pupil_utils.zscore(dfresamp['DiameterPupilLRFilt'])
-        sessdf, condf, incondf, neutraldf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
-                                                      tpre, tpost, samp_rate)
+        condf, incondf, neutraldf = proc_all_trials(sessdf, dfresamp['zDiameterPupilLRFilt'], 
+                                                    tpre, tpost, samp_rate)
         condf_long = reshape_df(condf)
         incondf_long = reshape_df(incondf)
         neutraldf_long = reshape_df(neutraldf)

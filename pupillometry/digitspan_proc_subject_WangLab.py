@@ -35,8 +35,9 @@ except ImportError:
     from tkinter import filedialog
 
 def plot_trials(pupildf, fname):
+    pupildf['Time'] = pd.to_datetime(pupildf.Timestamp).dt.second
     palette = sns.cubehelix_palette(len(pupildf.Load.unique()))
-    p = sns.lineplot(data=pupildf, x="Timestamp",y="Dilation", hue="Load", palette=palette, legend="brief", ci=None)
+    p = sns.lineplot(data=pupildf, x="Time",y="Dilation", hue="Load", palette=palette, legend="brief", ci=None)
     plt.xticks(rotation=45)
     plt.ylim(-.2, .5)
     plt.tight_layout()
@@ -54,6 +55,9 @@ def clean_trials(trialevents):
         string_cols = ['Load', 'Trial', 'Condition']
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=string_cols)
         baseline = trial_resamp.loc[trial_resamp.Condition=='Ready', 'DiameterPupilLRFilt'].last('250ms').mean()
+        baseline_blinks = trial_resamp.loc[trial_resamp.Condition=='Ready', 'BlinksLR'].last('250ms').mean()
+        if baseline_blinks > .5:
+            baseline = np.nan
         trial_resamp['Baseline'] = baseline
         trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
         trial_resamp = trial_resamp[trial_resamp.Condition=='Record']

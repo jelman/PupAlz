@@ -40,15 +40,28 @@ def glob_files(datadir, suffix):
     
     
 def get_sess_data(datadir):
+    """
+    Gather session data. Merge with total percentage of blinks across entire session. 
+    Filter our trial 1 and any trials with >33% blinks. Filter out subjects with
+    >50% blinks across the entire session. Add number of trials contributing to averages.
+    """
     sess_filelist = glob_files(datadir, suffix='_SessionData.csv')
     sess_list = []
     for sub_file in sess_filelist:
         subdf = pd.read_csv(sub_file)
         sess_list.append(subdf)
     sessdf = pd.concat(sess_list).reset_index(drop=True)
-    sessdf = sessdf.drop(columns=['TrialId', 'BlinkPct'])
-    sessdf = sessdf.groupby(['Subject','Session','Condition']).mean()
-    return sessdf.reset_index()
+    sessdf = sessdf.astype({"Subject": str, "Session": str})  
+    total_blink_df = get_blink_data(datadir)
+    total_blink_df = total_blink_df.astype({"Subject": str, "Session": str}) 
+    sessdf = pd.merge(sessdf, total_blink_df, on=['Subject','Session'])
+    sessdf = sessdf[(sessdf.BlinkPct<0.33) & (sessdf.TotalBlinkPct<0.50)]
+    sessdf = sessdf.drop(columns=['TrialId'])
+    sessdf_grp = sessdf.groupby(['Subject','Session','Condition']).mean()
+    ntrials = sessdf.groupby(by=['Subject','Session','Condition']).size()
+    ntrials.name = 'ntrials'
+    sessdf_grp = sessdf_grp.join(ntrials)
+    return sessdf_grp.reset_index()
 
 
 def get_blink_data(datadir):
@@ -95,27 +108,51 @@ def unstack_conditions(dflong):
     return df
 
 
+def calc_pstc_stats(pstc_df, window = [.5, 2.0]):
+    """
+    Parameters
+    ----------
+    pstc_df : pandas dataframe
+        Dataframe in long format containing dilation averaged over trials 
+        at each sample for each condition.
+    window : list, optional
+        DESCRIPTION. The default is [.5, 2.0].
+    Returns
+    -------
+    Dataframe with mean and maximum dilation for all conditions.
+    Considers dilation only within the specified window.
+    """
+    pstc_win = pstc_df[(pstc_df.Timepoint>=window[0]) & (pstc_df.Timepoint<=window[1])]
+    pstc_stats_long = pstc_win.groupby(['Subject','Session','Condition'])['Dilation'].agg(['mean','max']).reset_index()
+    pstc_stats_wide = unstack_conditions(pstc_stats_long)
+    return pstc_stats_wide
+
+
 def plot_group_pstc(pstcdf, outfile, trial_start=0.):
-    pstcdf = pstcdf[pstcdf.BlinkPct<.5]
     pstcdf['Subject_Session'] =  pstcdf.Subject.astype('str') + "_" + pstcdf.Session.astype('str')
     p = sns.lineplot(data=pstcdf, x="Timepoint",y="Dilation", hue="Condition")
-    kernel = pupil_utils.pupil_irf(pstcdf.Timepoint.unique(), s1=1000., tmax=1.30)
-    plt.plot(pstcdf.Timepoint.unique(), kernel, color='dimgrey', linestyle='--')
     plt.axvline(trial_start, color='k', linestyle='--')
     p.figure.savefig(outfile, dpi=300)  
     plt.close()    
     
     
 def proc_group(datadir):
+    tstamp = datetime.now().strftime("%Y%m%d")
     sessdf = get_sess_data(datadir)
     sessdf_wide = unstack_conditions(sessdf)
-    sessdf_wide = sessdf_wide.astype({"Subject": str, "Session": str})    
+    sessdf_wide = sessdf_wide.rename(columns={'C_TotalBlinkPct':'TotalBlinkPct'}).drop(columns=['I_TotalBlinkPct','N_TotalBlinkPct'])
     glm_df = get_glm_data(datadir)
-    blink_df = get_blink_data(datadir)
-    blink_df = blink_df.astype({"Subject": str, "Session": str})    
+    
     alldat = pd.merge(sessdf_wide, glm_df, on=['Subject','Session'])
-    alldat = pd.merge(alldat, blink_df, on=['Subject','Session'])
-    tstamp = datetime.now().strftime("%Y%m%d")
+    # alldat = calc_cnr(alldat)
+    # # Average across A and B sessions
+    # alldat = alldat.groupby(['Subject','Session']).mean().reset_index()
+    pstc_df = get_pstc_data(datadir)    
+    pstc_df = pstc_df.astype({"Subject": str, "Session": str})
+    pstc_outfile = os.path.join(datadir, 'stroop_group_pstc_' + tstamp + '.png')
+    plot_group_pstc(pstc_df, pstc_outfile)
+    pstc_stats = calc_pstc_stats(pstc_df, window = [.5, 2.0])
+    alldat = pd.merge(alldat, pstc_stats, on=['Subject','Session'])  
     outfile = os.path.join(datadir, 'stroop_group_' + tstamp + '.csv')
     print('Writing processed data to {0}'.format(outfile))
     alldat.to_csv(outfile, index=False)
@@ -125,12 +162,6 @@ def proc_group(datadir):
     redcap_outfile = os.path.join(datadir, 'stroop_REDCap_' + tstamp + '.csv')
     print('Writing processed data for REDCap to {0}'.format(redcap_outfile)) 
     alldat_redcap.to_csv(redcap_outfile, index=False)
-    pstcdf = get_pstc_data(datadir)    
-    pstcdf = pstcdf.astype({"Subject": str, "Session": str})
-    pstcdf = pd.merge(pstcdf, blink_df, on=['Subject','Session'])
-    pstcdf = pstcdf[pstcdf.Timepoint<=3.0]
-    pstc_outfile = os.path.join(datadir, 'stroop_group_pstc_' + tstamp + '.png')
-    plot_group_pstc(pstcdf, pstc_outfile, trial_start=0.)
 
 
 if __name__ == '__main__':
