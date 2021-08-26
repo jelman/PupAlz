@@ -38,8 +38,10 @@ def main(subjfile, effectfile):
     # Convert to long format
     subjdf_long = subjdf.melt(id_vars=['pupalz_id', 'redcap_event_name'], var_name="med_num", value_name="med_code")
     subjdf_long = subjdf_long[subjdf_long.med_code.notna()]
+    # Drugs are listed multiple times due to differen brand names. Keep only unique DRUGID
+    effectdf = effectdf.loc[effectdf.ANTICHOL_RATING.notna(),['DRUGID','ANTICHOL_RATING']].drop_duplicates()    
     # Merge participant data with burden ACh effects
-    df = pd.merge(subjdf_long, effectdf, how='inner', left_on='med_code', right_on='DRUGID')
+    df = pd.merge(subjdf_long, effectdf, how='left', left_on='med_code', right_on='DRUGID')
     df['ANTICHOL_RATING'] = df.ANTICHOL_RATING.fillna(value=0)
     # Calculate sum
     totaldf = df.groupby(['pupalz_id', 'redcap_event_name'])['ANTICHOL_RATING'].sum().reset_index()    
