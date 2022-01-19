@@ -20,7 +20,15 @@ import seaborn as sns
 from datetime import datetime
 from glob import glob
 import numpy as np
-
+try:
+    # for Python2
+    import Tkinter as tkinter
+    import tkFileDialog as filedialog
+except ImportError:
+    # for Python3
+    import tkinter
+    from tkinter import filedialog
+    
 
 def glob_files(datadir, suffix):
     globstr = os.path.join(datadir, '*'+suffix)
@@ -92,6 +100,13 @@ if __name__ == '__main__':
         print('Extracts dilation from timepoint of interest (i.e., last second) in each load.')
         print('Plots group level PTSC. Output can be used for statistical analysis.')
         print('')
+
+        root = tkinter.Tk()
+        root.withdraw()
+        # Select folder containing all data to process
+        datadir = filedialog.askdirectory(title='Choose directory containing subject data')
+        proc_group(datadir)
+
     else:
         datadir = sys.argv[1]
         proc_group(datadir)
