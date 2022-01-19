@@ -88,6 +88,7 @@ def proc_group(datadir):
     sessdf_wide = unstack_conditions(sessdf_long)
     sessdf_wide.columns = sessdf_wide.columns.str.lower()
     sessdf_wide_outfile = os.path.join(datadir, 'digitspan_group_REDCap_' + tstamp + '.csv')
+    print('Writing processed group data to {0}'.format(sessdf_wide_outfile))
     sessdf_wide.to_csv(sessdf_wide_outfile, index=False)
     
     

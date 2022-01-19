@@ -79,6 +79,7 @@ def proc_group(datadir):
     
     alldfgrp_wide = pivot_wide(alldfgrp)
     outname_wide = ''.join(['fluency_Quartiles_REDCap_',date,'.csv'])
+    print('Writing processed group data to {0}'.format(outname_wide))
     alldfgrp_wide.to_csv(os.path.join(datadir, outname_wide), index=False)
 
 if __name__ == '__main__':

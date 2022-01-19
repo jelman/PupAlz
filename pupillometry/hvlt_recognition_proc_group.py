@@ -79,6 +79,7 @@ def proc_group(datadir, exclude_file):
     alldfgrp = alldfgrp.reset_index()
     alldfgrp_wide = pivot_wide(alldfgrp)
     outname_wide = ''.join(['HVLT-Recognition_group_REDCap_',date,'.csv'])
+    print('Writing processed group data to {0}'.format(outname_wide))
     alldfgrp_wide.to_csv(os.path.join(datadir, outname_wide), index=False)
     
 

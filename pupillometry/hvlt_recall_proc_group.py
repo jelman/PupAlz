@@ -89,6 +89,7 @@ def proc_group(datadir, exclude_file):
 
     alldf_wide = pivot_wide(alldf)
     outname_wide = ''.join(['HVLT-Recall_Tertiles_REDCap_',date,'.csv'])
+    print('Writing processed group data to {0}'.format(outname_wide))
     alldf_wide.to_csv(os.path.join(datadir, outname_wide), index=False)
     
 
