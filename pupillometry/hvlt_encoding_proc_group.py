@@ -105,7 +105,7 @@ if __name__ == '__main__':
         # Select folder containing all data to process
         datadir = filedialog.askdirectory(title='Choose directory containing subject data')
         exclude_file = filedialog.askopenfilename(title='Choose QC file containing exclude data')
-        proc_group(datadir)
+        proc_group(datadir, exclude_file)
 
     else:
         datadir = sys.argv[1]
