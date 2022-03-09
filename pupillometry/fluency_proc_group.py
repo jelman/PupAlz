@@ -16,7 +16,14 @@ import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime
-
+try:
+    # for Python2
+    import Tkinter as tkinter
+    import tkFileDialog as filedialog
+except ImportError:
+    # for Python3
+    import tkinter
+    from tkinter import filedialog
 
 def pivot_wide(dflong):
     dflong = dflong.replace({'Timestamp' : 
@@ -90,7 +97,16 @@ if __name__ == '__main__':
         print('  Fluency_<subject>_ProcessedPupil_Quartiles.csv')
         print('Extracts mean dilation from quartiles and aggregates over trials.')
         print('')
+
+        root = tkinter.Tk()
+        root.withdraw()
+        # Select folder containing all data to process
+        datadir = filedialog.askdirectory(title='Choose directory containing subject data')
+        proc_group(datadir)
+
     else:
         datadir = sys.argv[1]
         proc_group(datadir)
+
+
         
