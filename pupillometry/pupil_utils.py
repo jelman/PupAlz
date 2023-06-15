@@ -15,7 +15,7 @@ def get_fname_subid(fname):
     """Given the input files, extract subject ID from basename"""
     fname_base = os.path.basename(fname)  
     try:
-        subid = re.search(r'(\d{3}).[xlsx|gazedata]', fname_base, re.IGNORECASE).group(1)
+        subid = re.search(r'(\d+)-\d.[xlsx|gazedata]', fname_base, re.IGNORECASE).group(1)
         return subid
     except AttributeError:
         print("Could not find valid subject ID in path of input file.")
