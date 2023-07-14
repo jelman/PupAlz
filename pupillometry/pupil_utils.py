@@ -202,21 +202,31 @@ def resamp_filt_data(df, bin_length='33ms', filt_type='band', string_cols=None):
         7. Applies Butterworth bandpass filter to remove high and low freq noise
         8. If string columns should be retained, forward fill and merge with resamp data
         """
+    # Smooth the pupil diameter data
     df['DiameterPupilLeftEyeSmooth'] = df.DiameterPupilLeftEye.rolling(5, center=True).mean()  
     df['DiameterPupilRightEyeSmooth'] = df.DiameterPupilRightEye.rolling(5, center=True).mean()  
     df['DiameterPupilLRSmooth'] = df[['DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']].mean(axis=1, skipna=True)
+
+    # Convert the time to seconds since the start of the experiment
     df['Time'] = (df.TETTime - df.TETTime.iloc[0]) / 1000.
+
+    # Convert the time to a datetime object and set it as the index
     df['Timestamp'] = pd.to_datetime(df.Time, unit='s')
     df = df.set_index('Timestamp')
-    dfresamp = df.resample(bin_length, closed='right', label='right').mean()
+    # Resample the data to 100 ms bins
+    dfresamp = df.select_dtypes(exclude=['object']).resample(bin_length, closed='right', label='right').mean()
+    # Fill in missing values by interpolating from nearest value
     dfresamp['Subject'] = df.Subject[0]
     nearestcols = ['Subject','Session','TrialId','CRESP','ACC','RT',
                    'BlinksLeft','BlinksRight','BlinksLR'] 
     dfresamp[nearestcols] = dfresamp[nearestcols].interpolate('nearest')
+    # Round the blinks to nearest whole number
     dfresamp[['BlinksLeft','BlinksRight','BlinksLR']] = dfresamp[['BlinksLeft','BlinksRight','BlinksLR']].round()
+    # Interpolate the pupil diameter to fill in missing values
     resampcols = ['DiameterPupilLRSmooth','DiameterPupilLeftEyeSmooth','DiameterPupilRightEyeSmooth']
     newresampcols = [x.replace('Smooth','Resamp') for x in resampcols]
-    dfresamp[newresampcols] = dfresamp[resampcols].interpolate('linear', limit_direction='both')
+    dfresamp[newresampcols] = dfresamp[resampcols].interpolate('linear', limit_direction='both')    
+    # Filter the pupil data
     if filt_type=='band':
         dfresamp['DiameterPupilLRFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLRResamp)        
         dfresamp['DiameterPupilLeftEyeFilt'] = butter_bandpass_filter(dfresamp.DiameterPupilLeftEyeResamp)
