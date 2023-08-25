@@ -72,7 +72,7 @@ def proc_group(datadir, exclude_file):
     alldf = alldf[alldf.Exclude!=1].drop(columns=["_merge", "Exclude"])
 
     # Average across trials within quartile and condition
-    alldfgrp = alldf.groupby(['Subject','Word']).mean().reset_index()
+    alldfgrp = alldf.groupby(['Subject','Word']).mean(numeric_only=True).reset_index()
     alldfgrp = alldfgrp.drop(columns='Trial')
     ntrials = alldf.groupby(['Subject','Word']).size().reset_index(name='ntrials')
     alldfgrp = alldfgrp.merge(ntrials, on=['Subject','Word'], validate="one_to_one")

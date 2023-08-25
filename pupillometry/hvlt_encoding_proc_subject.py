@@ -57,7 +57,7 @@ def clean_trials(trialevents):
         cleantrial.loc[:,'Trial'] = cleantrial.Trial.astype('str')
         string_cols = ['Trial', 'CurrentObject']
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=string_cols)        
-        baseline = trial_resamp.loc[trial_resamp.CurrentObject=="Ready","DiameterPupilLRFilt"].last("1000ms").mean()
+        baseline = trial_resamp.loc[trial_resamp.CurrentObject=="Ready","DiameterPupilLRFilt"].last("1000ms").mean(numeric_only=True)
         trial_resamp['Baseline'] = baseline
         trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
         trial_resamp = trial_resamp[trial_resamp.CurrentObject.str.match("PlayWord")]
@@ -107,7 +107,7 @@ def proc_subject(filelist):
         timepoint = pupil_utils.get_timepoint(df['Session'], fname)
         trialevents = get_trial_events(df)
         dfresamp = clean_trials(trialevents)
-        pupildf = dfresamp.groupby(['Trial','CurrentObject']).mean().reset_index()
+        pupildf = dfresamp.groupby(['Trial','CurrentObject']).mean(numeric_only=True).reset_index()
         pupildf['Word'] = pupildf.CurrentObject.str.replace('PlayWord','').astype('int')        
         pupilcols = ['Subject', 'Session', 'Trial', 'Word', 'Dilation',
                      'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']

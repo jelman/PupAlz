@@ -48,7 +48,7 @@ def plot_trials(pupildf, fname):
     
 def clean_trials(df):
         dfresamp = pupil_utils.resamp_filt_data(df, filt_type='low', string_cols=['CurrentObject'])
-        baseline = dfresamp.loc[dfresamp['CurrentObject']=='Recallinstructions','DiameterPupilLRFilt'].last('1000ms').mean()
+        baseline = dfresamp.loc[dfresamp['CurrentObject']=='Recallinstructions','DiameterPupilLRFilt'].last('1000ms').mean(numeric_only=True)
         dfresamp['Baseline'] = baseline
         dfresamp['Dilation'] = dfresamp['DiameterPupilLRFilt'] - dfresamp['Baseline']
         dfresamp = dfresamp[dfresamp.CurrentObject=='Recall']
@@ -76,7 +76,7 @@ def proc_subject(filelist):
         df = pupil_utils.deblink(df)
         dfresamp = clean_trials(df)
         dfresamp = dfresamp[dfresamp.index<=dfresamp.index[0] + pd.offsets.Second(30)]
-        dfresamp1s = dfresamp.resample('1S', closed='right', label='right').mean()
+        dfresamp1s = dfresamp.resample('1S', closed='right', label='right').mean(numeric_only=True)
         dfresamp1s.index = dfresamp1s.index.round('S')
         dfresamp1s = dfresamp1s.dropna(how='all')
         pupildf = dfresamp1s.reset_index().rename(columns={
@@ -99,7 +99,7 @@ def proc_subject(filelist):
         plot_trials(pupildf, fname)
 
         #### Create data for 10 second blocks
-        dfresamp10s = dfresamp.resample('10s', closed='right', label='right').mean()
+        dfresamp10s = dfresamp.resample('10s', closed='right', label='right').mean(numeric_only=True)
         pupilcols = ['Subject', 'Timestamp', 'Dilation', 'Baseline', 
                      'DiameterPupilLRFilt', 'BlinksLR']
         pupildf10s = dfresamp10s.reset_index()[pupilcols].sort_values(by='Timestamp')

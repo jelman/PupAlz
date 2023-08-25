@@ -61,7 +61,7 @@ def clean_trials(df, trialevents):
 #        rawtrial = rawtrial[rawtrial.Condition=='Response']
         cleantrial = pupil_utils.deblink(rawtrial)
         trial_resamp = pupil_utils.resamp_filt_data(cleantrial, filt_type='low', string_cols=['CurrentObject', 'Phase'])
-        baseline = trial_resamp['DiameterPupilLRFilt'].first('1000ms').mean()
+        baseline = trial_resamp['DiameterPupilLRFilt'].first('1000ms').mean(numeric_only=True)
 #        baseline = trial_resamp.DiameterPupilLRFilt.iat[0]
         trial_resamp['Baseline'] = baseline
         trial_resamp['Dilation'] = trial_resamp['DiameterPupilLRFilt'] - trial_resamp['Baseline']
@@ -128,7 +128,7 @@ def proc_subject(filelist):
         dfresamp['Timestamp'] = dfresamp.groupby(level='Trial')['Timestamp'].transform(lambda x: x - x.iat[0])
         dfresamp['Timestamp'] = pd.to_datetime(dfresamp.Timestamp.values.astype(np.int64))
         ### Create data resampled to 1 second
-        dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean())
+        dfresamp1s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('1s', on='Timestamp', closed='right', label='right').mean(numeric_only=True))
         pupilcols = ['Subject', 'Session', 'Trial', 'Condition', 'Timestamp', 
                      'Dilation', 'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf = dfresamp1s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])
@@ -144,7 +144,7 @@ def proc_subject(filelist):
         plot_trials(pupildf, fname)
         
         #### Create data for 15 second blocks
-        dfresamp15s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('15s', on='Timestamp', closed='right', label='right').mean())
+        dfresamp15s = dfresamp.groupby(level=['Condition','Trial']).apply(lambda x: x.resample('15s', on='Timestamp', closed='right', label='right').mean(numeric_only=True))
         pupilcols = ['Subject', 'Session', 'Trial', 'Condition', 'Timestamp', 
                      'Dilation', 'Baseline', 'DiameterPupilLRFilt', 'BlinksLR']
         pupildf15s = dfresamp15s.reset_index()[pupilcols].sort_values(by=['Trial','Timestamp'])

@@ -66,7 +66,7 @@ def proc_group(datadir, exclude_file):
     # Remove time 00:00:00
     
     # Remove subjects who have total blinkpct >50%
-    alldf = alldf.groupby('Subject').filter(lambda x: x['BlinkPct'].mean() < .50)
+    alldf = alldf.groupby('Subject').filter(lambda x: x['BlinkPct'].mean(numeric_only=True) < .50)
     # Remove tertiles with over 50% blinks
     alldf = alldf[alldf.BlinkPct<.50]
     # Save out concatenated data

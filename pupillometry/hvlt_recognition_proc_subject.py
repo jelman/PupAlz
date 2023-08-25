@@ -89,10 +89,10 @@ def proc_all_trials(dfresamp):
         5) Get duration of each trial
     """
     dfresamp = dfresamp[~(dfresamp.CurrentObject=="Fixation")]
-    dfresamp['Baseline'] = dfresamp.groupby('TrialId')['DiameterPupilLRFilt'].transform(lambda x: x.first('250ms').mean())
+    dfresamp['Baseline'] = dfresamp.groupby('TrialId')['DiameterPupilLRFilt'].transform(lambda x: x.first('250ms').mean(numeric_only=True))
     dfresamp['Dilation'] = dfresamp['DiameterPupilLRFilt'] - dfresamp['Baseline']
     dfresamp['Duration'] = dfresamp.groupby('TrialId')['TrialId'].transform(lambda x: (x.index[-1] - x.index[0]) / np.timedelta64(1, 's'))
-    dfresamp['BlinkPct'] = dfresamp.groupby('TrialId')['BlinksLR'].transform(lambda x: x.mean())
+    dfresamp['BlinkPct'] = dfresamp.groupby('TrialId')['BlinksLR'].transform(lambda x: x.mean(numeric_only=True))
     alltrialsdf = dfresamp.reset_index()
     alltrialsdf['Timestamp'] = alltrialsdf.groupby('TrialId')['Timestamp'].transform(lambda x: (x - x.iat[0]) / np.timedelta64(1, 's'))
     conditions = hvlt_conditions_df()
@@ -126,7 +126,7 @@ def proc_subject(filelist):
         alltrialsdf = alltrialsdf[alltrialsdf.BlinkPct<.50]              
         
         plot_trials(alltrialsdf, fname)
-        pupildf = alltrialsdf.groupby(['Condition', 'Timestamp'])[['Baseline','DiameterPupilLRFilt','Dilation','BlinksLR','Duration']].mean()
+        pupildf = alltrialsdf.groupby(['Condition', 'Timestamp'])[['Baseline','DiameterPupilLRFilt','Dilation','BlinksLR','Duration']].mean(numeric_only=True)
         pupildf['ntrials'] = alltrialsdf.groupby(['Condition', 'Timestamp']).size()
         pupildf = pupildf.reset_index()  
         pupildf['Subject'] = subid

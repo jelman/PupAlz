@@ -73,7 +73,7 @@ def proc_group(datadir, exclude_file):
     # Summarize data: mean and max dilation per condition
     ## Only consider samples within 3sec of stimulus onset ##
     alldf = alldf[alldf.Timestamp<=2.5]
-    alldfgrp = alldf.groupby(['Subject','Condition']).mean()
+    alldfgrp = alldf.groupby(['Subject','Condition']).mean(numeric_only=True)
     alldfgrp = alldfgrp.rename(columns={'Dilation':'Dilation_mean', 'Diameter':'Diameter_mean'})
     alldfgrp[['Dilation_max','Diameter_max']] = alldf.groupby(['Subject','Condition'])[['Dilation','Diameter']].max()    
     alldfgrp = alldfgrp.reset_index()

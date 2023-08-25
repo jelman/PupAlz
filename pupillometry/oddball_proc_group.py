@@ -59,7 +59,7 @@ def get_sess_data(datadir):
     sessdf = pd.merge(sessdf, total_blink_df, on=['Subject','Session','OddballSession'])
     sessdf = sessdf[(sessdf.TrialId!=1) & (sessdf.BlinkPct<0.33) & (sessdf.TotalBlinkPct<0.50)]
     sessdf = sessdf.drop(columns=['TrialId'])
-    sessdf_grp = sessdf.groupby(['Subject','Session','Condition']).mean()
+    sessdf_grp = sessdf.groupby(['Subject','Session','Condition']).mean(numeric_only=True)
     ntrials = sessdf.groupby(by=['Subject','Session','Condition']).size()
     ntrials.name = 'ntrials'
     sessdf_grp = sessdf_grp.join(ntrials)
@@ -176,11 +176,11 @@ def proc_group(datadir):
     sessdf_wide = unstack_conditions(sessdf)
     sessdf_wide = sessdf_wide.rename(columns={'Standard_TotalBlinkPct':'TotalBlinkPct'}).drop(columns=['Target_TotalBlinkPct'])
     glm_df = get_glm_data(datadir)
-    glm_df = glm_df.groupby(['Subject','Session']).mean().reset_index()
+    glm_df = glm_df.groupby(['Subject','Session']).mean(numeric_only=True).reset_index()
     alldat = pd.merge(sessdf_wide, glm_df, on=['Subject','Session'])
     # alldat = calc_cnr(alldat)
     # # Average across A and B sessions
-    # alldat = alldat.groupby(['Subject','Session']).mean().reset_index()
+    # alldat = alldat.groupby(['Subject','Session']).mean(numeric_only=True).reset_index()
     pstc_df = get_pstc_data(datadir)    
     pstc_df = pstc_df.astype({"Subject": str, "Session": str})
     pstc_outfile = os.path.join(datadir, 'oddball_group_pstc_' + tstamp + '.png')

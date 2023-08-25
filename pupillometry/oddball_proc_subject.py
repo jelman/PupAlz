@@ -59,7 +59,7 @@ def save_total_blink_pct(dfresamp, infile):
     """Calculate and save out percent of trials with blinks in session"""
     outfile = pupil_utils.get_outfile(infile, '_BlinkPct.json')
     blink_dict = {}
-    blink_dict['TotalBlinkPct'] = float(dfresamp.BlinksLR.mean())
+    blink_dict['TotalBlinkPct'] = float(dfresamp.BlinksLR.mean(numeric_only=True))
     blink_dict['Subject'] = pupil_utils.get_subid(dfresamp['Subject'], infile)
     blink_dict['Session'] = pupil_utils.get_timepoint(dfresamp['Session'], infile)
     blink_dict['OddballSession'] = get_oddball_session(infile)
@@ -74,7 +74,7 @@ def get_blink_pct(dfresamp, infile=None):
     of samples with blinks within each trial for filtering out bad trials."""
     if infile:
         save_total_blink_pct(dfresamp, infile)
-    trial_blinkpct = dfresamp.groupby('TrialId')['BlinksLR'].mean()
+    trial_blinkpct = dfresamp.groupby('TrialId')['BlinksLR'].mean(numeric_only=True)
     return trial_blinkpct
 
 
@@ -85,7 +85,7 @@ def get_trial_dils(pupil_dils, onset, tpre, tpost, samp_rate):
     onset_idx = int(pupil_dils.index.get_loc(onset))
     pre_idx = int(onset_idx - (tpre/(1/samp_rate)))
     post_idx = int(onset_idx + (tpost/(1/samp_rate)) + 1)
-    baseline = pupil_dils.iloc[pre_idx:onset_idx].mean()
+    baseline = pupil_dils.iloc[pre_idx:onset_idx].mean(numeric_only=True)
 #    baseline = pupil_dils[onset]
     #trial_dils = pupil_dils[onset:post_event] - baseline
     trial_dils = pupil_dils.iloc[pre_idx:post_idx] - baseline
@@ -212,7 +212,7 @@ def plot_pstc(allconddf, infile, trial_start=0.):
 def save_pstc(allconddf, infile, trial_start=0.):
     """Save out peristimulus timecourse plots"""
     outfile = pupil_utils.get_outfile(infile, '_PSTCdata.csv')
-    pstcdf = allconddf.groupby(['Subject','Condition','Timepoint']).mean().reset_index()
+    pstcdf = allconddf.groupby(['Subject','Condition','Timepoint']).mean(numeric_only=True).reset_index()
     pstcdf.to_csv(outfile, index=False)
     
 
