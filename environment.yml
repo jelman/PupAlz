@@ -1,0 +1,14 @@
+name: pupalz
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy=1.22
+  - pandas=2.0.*
+  - matplotlib-base=3.7.*
+  - tk=8.6.*
+  - seaborn=0.12.*
+  - scipy=1.7.3
+  - nilearn=0.10.*
+  - nitime=0.10.*
