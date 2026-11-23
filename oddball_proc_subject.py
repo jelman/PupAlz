@@ -256,7 +256,7 @@ def proc_subject(filelist):
         glm_results['Session'] = timepoint
         glm_results['OddballSession'] = oddball_sess
         save_glm_results(glm_results, fname)
-        allconddf = standdf_long.append(targdf_long).reset_index(drop=True)
+        allconddf = pd.concat([standdf_long, targdf_long], ignore_index=True)
         # Set subject ID and session as (as type string)
         allconddf['Subject'] = subid
         allconddf['Session'] = timepoint   

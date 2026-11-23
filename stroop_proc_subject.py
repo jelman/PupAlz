@@ -297,8 +297,7 @@ def proc_subject(filelist):
         glm_results['Subject'] = subid
         glm_results['Session'] = timepoint
         save_glm_results(glm_results, pupil_fname)
-        allconddf = condf_long.append(incondf_long).reset_index(drop=True)
-        allconddf = allconddf.append(neutraldf_long).reset_index(drop=True)
+        allconddf = pd.concat([condf_long, incondf_long, neutraldf_long], ignore_index=True)
         # Set subject ID and session as (as type string)
         allconddf['Subject'] = subid
         allconddf['Session'] = timepoint   

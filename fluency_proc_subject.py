@@ -98,7 +98,7 @@ def get_trial_events(df):
         trialevents_start['StatStop'] = 'Start'
         trialevents_stop['TrialPhase'] = np.tile(['Baseline','Response'], ntrials)
         trialevents_stop['StartStop'] = 'Stop'
-        trialevents = trialevents_start.append(trialevents_stop).sort_index()
+        trialevents = pd.concat([trialevents_start, trialevents_stop]).sort_index()
         trialevents['Trial'] = np.repeat(range(1,ntrials+1), 4)
         trialevents['Condition'] = np.repeat(['Letter', 'Category'], ntrials*2)
     else:
